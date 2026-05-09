@@ -19,7 +19,7 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
   return (
     <div className="bg-white rounded-[10px] border border-border-color shadow-[0_2px_8px_rgba(0,0,0,0.04)] overflow-hidden flex flex-col group h-full">
       {/* Image Container */}
-      <Link href={`/products/${product.slug}`} className="relative block aspect-[4/5] bg-[#f8f8f8] overflow-hidden">
+      <Link href={`/products/${product.slug}`} prefetch={true} className="relative block aspect-[4/5] bg-[#f8f8f8] overflow-hidden">
         <Image
           src={product.image}
           alt={product.name}
@@ -38,7 +38,7 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
 
       {/* Content */}
       <div className="p-3 flex flex-col flex-1">
-        <Link href={`/products/${product.slug}`} className="block mb-1">
+        <Link href={`/products/${product.slug}`} prefetch={true} className="block mb-1">
           <h3 className="text-black font-semibold text-[13px] leading-[1.3] line-clamp-2 text-center group-hover:text-primary transition-colors h-[34px]">
             {product.name}
           </h3>
