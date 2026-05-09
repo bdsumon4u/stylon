@@ -13,12 +13,6 @@ import "swiper/css/free-mode";
 import "swiper/css/navigation";
 import "swiper/css/thumbs";
 
-export function generateStaticParams() {
-  return mockProducts.map((product) => ({
-    slug: product.slug,
-  }));
-}
-
 function ZoomableImage({ src, alt, priority }: { src: string, alt: string, priority?: boolean }) {
   const [position, setPosition] = useState({ x: '50%', y: '50%' });
   const [isZoomed, setIsZoomed] = useState(false);
