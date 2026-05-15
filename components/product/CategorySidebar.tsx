@@ -1,11 +1,37 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronDown, ChevronUp } from "lucide-react";
-import { mockCategories } from "@/data/mock";
+import { getCategories } from "@/lib/api";
+import { Category } from "@/types";
 
 export function CategorySidebar() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const activeCategory = searchParams.get("category") || "";
+  
+  const [categories, setCategories] = useState<Category[]>([]);
   const [isCategoryOpen, setIsCategoryOpen] = useState(true);
+  const [catSearch, setCatSearch] = useState("");
+
+  useEffect(() => {
+    getCategories()
+      .then(setCategories)
+      .catch(err => console.error("Failed to fetch categories:", err));
+  }, []);
+
+  const filteredCategories = categories.filter(c =>
+    c.name.toLowerCase().includes(catSearch.toLowerCase())
+  );
+
+  const handleCategoryClick = (slug: string) => {
+    if (activeCategory === slug) {
+      router.push("/products");
+    } else {
+      router.push(`/products?category=${slug}`);
+    }
+  };
 
   return (
     <div className="w-full lg:w-[260px] shrink-0 space-y-6">
@@ -19,24 +45,15 @@ export function CategorySidebar() {
           type="text" 
           placeholder="Enter Product Name" 
           className="w-full border border-border-color rounded py-2 px-3 text-sm focus:border-primary outline-none"
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              const value = (e.target as HTMLInputElement).value;
+              if (value.trim()) {
+                router.push(`/products?search=${encodeURIComponent(value.trim())}`);
+              }
+            }
+          }}
         />
-      </div>
-
-      {/* Filter By Price */}
-      <div>
-        <h3 className="font-bold text-[14px] mb-2">Filter By Price</h3>
-        <div className="flex items-center gap-2">
-          <input 
-            type="text" 
-            placeholder="Min - 0 Tk" 
-            className="w-full border border-border-color rounded py-2 px-3 text-sm focus:border-primary outline-none"
-          />
-          <input 
-            type="text" 
-            placeholder="Max - 2800 Tk" 
-            className="w-full border border-border-color rounded py-2 px-3 text-sm focus:border-primary outline-none"
-          />
-        </div>
       </div>
 
       {/* Filter By Category */}
@@ -54,13 +71,24 @@ export function CategorySidebar() {
             <input 
               type="text" 
               placeholder="search category . . ." 
+              value={catSearch}
+              onChange={(e) => setCatSearch(e.target.value)}
               className="w-full border border-border-color rounded py-1.5 px-3 text-sm focus:border-primary outline-none mb-3"
             />
             <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-              {mockCategories.map((category) => (
-                <div key={category.id} className="flex items-center gap-2">
-                  <input type="checkbox" className="w-4 h-4 accent-primary rounded border-border-color text-primary focus:ring-primary" />
-                  <label className="text-[13px] flex-1 cursor-pointer truncate">
+              {filteredCategories.map((category) => (
+                <div 
+                  key={category.id} 
+                  className={`flex items-center gap-2 cursor-pointer group ${activeCategory === category.slug ? 'text-primary' : ''}`}
+                  onClick={() => handleCategoryClick(category.slug)}
+                >
+                  <input 
+                    type="checkbox" 
+                    checked={activeCategory === category.slug}
+                    readOnly
+                    className="w-4 h-4 accent-primary rounded border-border-color text-primary focus:ring-primary cursor-pointer" 
+                  />
+                  <label className="text-[13px] flex-1 cursor-pointer truncate group-hover:text-primary transition-colors">
                     {category.name}
                   </label>
                   <span className="text-[11px] text-muted-text bg-gray-100 px-1.5 py-0.5 rounded">
@@ -71,27 +99,6 @@ export function CategorySidebar() {
             </div>
           </div>
         )}
-      </div>
-
-      {/* Filter By Brand */}
-      <div>
-        <h3 className="font-bold text-[14px] mb-2">Filter By Brand</h3>
-        <div className="border border-border-color p-3 rounded space-y-2">
-          <input 
-            type="text" 
-            placeholder="search brand . . ." 
-            className="w-full border border-border-color rounded py-1.5 px-3 text-sm focus:border-primary outline-none mb-3"
-          />
-          <div className="flex items-center gap-2">
-            <input type="checkbox" className="w-4 h-4 accent-primary rounded border-border-color text-primary focus:ring-primary" />
-            <label className="text-[13px] flex items-center gap-2 cursor-pointer">
-              <div className="w-4 h-4 bg-gray-200 rounded border border-border-color flex items-center justify-center text-[8px] font-bold">
-                S
-              </div>
-              stylon
-            </label>
-          </div>
-        </div>
       </div>
     </div>
   );

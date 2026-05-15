@@ -1,13 +1,14 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useState, useEffect } from "react";
 import Image from "next/image";
-import { mockProducts } from "@/data/mock";
-import { Minus, Plus, ChevronDown, ChevronUp, ShoppingCart, FileText, Video, Share2, ShieldCheck } from "lucide-react";
+import { Minus, Plus, ChevronDown, ChevronUp, ShoppingCart, FileText, Video, Share2, ShieldCheck, ChevronLeft, ChevronRight } from "lucide-react";
 import { useCartStore } from "@/store/cart";
 import { ProductCard } from "@/components/product/ProductCard";
+import { getProduct, getRelatedProducts } from "@/lib/api";
+import { Product } from "@/types";
 import { Swiper, SwiperSlide } from "swiper/react";
-import { FreeMode, Navigation, Thumbs } from "swiper/modules";
+import { FreeMode, Navigation, Thumbs, Mousewheel, Keyboard } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/free-mode";
 import "swiper/css/navigation";
@@ -49,14 +50,55 @@ function ZoomableImage({ src, alt, priority }: { src: string, alt: string, prior
 
 export default function ProductDetailsPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
-  const product = mockProducts.find(p => p.slug === slug) || mockProducts[0];
   
   const { addItem, setOrderModalOpen } = useCartStore();
+  const [product, setProduct] = useState<Product | null>(null);
+  const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
   const [activeAccordion, setActiveAccordion] = useState<string>("description");
   const [thumbsSwiper, setThumbsSwiper] = useState<any>(null);
 
-  const allImages = [product.image, ...(product.thumbnails || [])];
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const [prod, related] = await Promise.all([
+          getProduct(slug),
+          getRelatedProducts(slug),
+        ]);
+        setProduct(prod);
+        setRelatedProducts(related);
+      } catch (error) {
+        console.error("Failed to fetch product:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchData();
+  }, [slug]);
+
+  if (loading || !product) {
+    return (
+      <div className="max-w-[1320px] mx-auto px-4 lg:px-8 py-8 flex flex-col gap-12">
+        <div className="flex flex-col lg:flex-row gap-8 lg:gap-12">
+          <div className="w-full lg:w-[480px] xl:w-[540px] shrink-0">
+            <div className="aspect-[4/5] bg-gray-200 animate-pulse rounded-lg" />
+          </div>
+          <div className="flex-1 space-y-4 pt-6">
+            <div className="h-8 bg-gray-200 animate-pulse rounded w-3/4" />
+            <div className="h-4 bg-gray-200 animate-pulse rounded w-1/2" />
+            <div className="h-10 bg-gray-200 animate-pulse rounded w-1/3 mt-4" />
+            <div className="h-20 bg-gray-200 animate-pulse rounded w-full mt-4" />
+            <div className="h-12 bg-gray-200 animate-pulse rounded w-full mt-8" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const allImages = product.images && product.images.length > 0 
+    ? product.images 
+    : [product.image, ...(product.thumbnails || [])];
   
   const handleAddToCart = () => {
     addItem(product, quantity);
@@ -68,7 +110,7 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ slug:
   };
 
   return (
-    <div className="max-w-[1440px] mx-auto px-4 lg:px-8 py-8 flex flex-col gap-12">
+    <div className="max-w-[1320px] mx-auto px-4 lg:px-8 py-8 flex flex-col gap-12">
       
       {/* Product Top Section */}
       <div className="flex flex-col lg:flex-row gap-8 lg:gap-12">
@@ -83,16 +125,18 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ slug:
               spaceBetween={10}
               navigation={true}
               thumbs={{ swiper: thumbsSwiper && !thumbsSwiper.destroyed ? thumbsSwiper : null }}
-              modules={[FreeMode, Navigation, Thumbs]}
+              modules={[FreeMode, Navigation, Thumbs, Mousewheel, Keyboard]}
+              mousewheel={{ forceToAxis: true }}
+              keyboard={true}
               className="w-full h-full"
             >
               {allImages.map((img, idx) => (
                 <SwiperSlide key={idx} className="relative w-full h-full">
-                  <ZoomableImage src={img} alt={`${product.name} ${idx}`} priority={idx === 0} />
+                  <ZoomableImage src={img} alt={`${product.name || "Product Image"} ${idx}`} priority={idx === 0} />
                 </SwiperSlide>
               ))}
             </Swiper>
-            {product.discountPercentage && (
+            {product.discountPercentage && product.discountPercentage > 0 && (
               <div className="absolute top-3 right-3 bg-sale-red text-white text-xs font-bold px-2 py-1 rounded shadow-sm z-10">
                 {product.discountPercentage}% Off
               </div>
@@ -101,22 +145,42 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ slug:
           
           {/* Thumbnails */}
           {allImages.length > 1 && (
-            <div className="h-24 relative">
+            <div className="h-24 relative group/thumbs">
               <Swiper
                 onSwiper={setThumbsSwiper}
                 spaceBetween={12}
                 slidesPerView={4}
+                navigation={{
+                  prevEl: ".thumbs-prev",
+                  nextEl: ".thumbs-next",
+                }}
                 freeMode={true}
                 watchSlidesProgress={true}
-                modules={[FreeMode, Navigation, Thumbs]}
-                className="h-full thumbs-slider"
+                modules={[FreeMode, Navigation, Thumbs, Mousewheel, Keyboard]}
+                mousewheel={{ forceToAxis: true }}
+                keyboard={true}
+                className="h-full thumbs-slider px-1"
+                breakpoints={{
+                  480: { slidesPerView: 5 },
+                  640: { slidesPerView: 6 },
+                  1024: { slidesPerView: 4 },
+                  1280: { slidesPerView: 5 },
+                }}
               >
                 {allImages.map((img, idx) => (
                   <SwiperSlide key={idx} className="cursor-pointer overflow-hidden rounded border border-transparent opacity-60 hover:opacity-100 transition-opacity [&.swiper-slide-thumb-active]:border-black [&.swiper-slide-thumb-active]:opacity-100 relative bg-gray-100">
-                    <Image src={img} alt={`${product.name} thumb ${idx}`} fill sizes="80px" className="object-cover" priority={idx === 0} />
+                    <Image src={img} alt={`${product.name || "Product"} thumb ${idx}`} fill sizes="80px" className="object-cover" priority={idx === 0} />
                   </SwiperSlide>
                 ))}
               </Swiper>
+              
+              {/* Custom Navigation for Thumbs */}
+              <button className="thumbs-prev absolute left-[-15px] top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white shadow-md rounded-full flex items-center justify-center opacity-0 group-hover/thumbs:opacity-100 transition-opacity disabled:!hidden border border-border-color">
+                <ChevronLeft className="w-5 h-5 text-black" />
+              </button>
+              <button className="thumbs-next absolute right-[-15px] top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white shadow-md rounded-full flex items-center justify-center opacity-0 group-hover/thumbs:opacity-100 transition-opacity disabled:!hidden border border-border-color">
+                <ChevronRight className="w-5 h-5 text-black" />
+              </button>
             </div>
           )}
         </div>
@@ -134,7 +198,7 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ slug:
 
           {/* Pricing */}
           <div className="flex items-center gap-4 mb-6">
-            {product.salePrice ? (
+            {product.salePrice && product.salePrice < product.regularPrice ? (
               <>
                 <span className="text-sale-red line-through text-lg font-medium">{product.regularPrice} Tk</span>
                 <span className="text-black font-bold text-3xl">{product.salePrice} Tk</span>
@@ -142,20 +206,22 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ slug:
             ) : (
               <span className="text-black font-bold text-3xl">{product.regularPrice} Tk</span>
             )}
-            {product.discountPercentage && (
+            {product.discountPercentage && product.discountPercentage > 0 && (
               <span className="bg-black text-white px-3 py-1 rounded-full text-[11px] font-bold ml-2 shadow-md">
                 Save {product.regularPrice - (product.salePrice || 0)} Tk
               </span>
             )}
           </div>
 
+          {product.shortDescription && (
           <p className="text-black mb-6 leading-relaxed text-[15px]">
-            {product.description || "অত্যন্ত আকর্ষণীয় ডিজাইনের এই ড্রেসটি আপনাকে দেবে এক প্রিমিয়াম লুক। উন্নত মানের ফেব্রিক এবং চমৎকার ফিনিশিং।"}
+            {product.shortDescription}
           </p>
+          )}
 
           <div className="mb-8">
-            <span className="inline-flex items-center gap-1.5 bg-[#e8f5e9] text-discount-green px-3 py-1.5 rounded text-xs font-bold border border-[#c8e6c9]">
-              Stock Status : <span className="text-discount-green">In Stock</span>
+            <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-bold border ${product.inStock ? 'bg-[#e8f5e9] text-discount-green border-[#c8e6c9]' : 'bg-red-50 text-sale-red border-red-200'}`}>
+              Stock Status : <span>{product.inStock ? 'In Stock' : 'Out of Stock'}</span>
             </span>
           </div>
 
@@ -206,9 +272,7 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ slug:
               isOpen={activeAccordion === "description"}
               onClick={() => setActiveAccordion(activeAccordion === "description" ? "" : "description")}
             >
-              <p className="text-sm text-muted-text">
-                This exclusive dress is designed to give you a premium and elegant look. Made from high-quality materials to ensure maximum comfort and durability. The perfect choice for any party or festive occasion.
-              </p>
+              <div className="text-sm text-muted-text" dangerouslySetInnerHTML={{ __html: product.description || "This exclusive dress is designed to give you a premium and elegant look. Made from high-quality materials to ensure maximum comfort and durability." }} />
             </AccordionItem>
             
             <AccordionItem 
@@ -256,7 +320,7 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ slug:
         {/* Left Side: Thumbnail, Price, Qty */}
         <div className="flex items-center gap-2">
           <div className="w-10 h-12 bg-gray-100 rounded relative overflow-hidden border border-border-color shrink-0">
-            <Image src={product.image} alt={product.name} fill sizes="40px" className="object-cover" priority={true} />
+            <Image src={product.image} alt={product.name || "Product"} fill sizes="40px" className="object-cover" priority={true} />
           </div>
           <div className="flex flex-col">
             <span className="font-bold text-[13px] text-primary leading-tight">{product.salePrice || product.regularPrice} Tk</span>
@@ -297,19 +361,21 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ slug:
       </div>
 
       {/* Related Products */}
-      <div className="mt-8">
-        <div className="mb-8 relative">
-          <h2 className="text-xl lg:text-2xl font-bold text-black border-l-4 border-primary pl-3">
-            <span className="text-primary text-xs tracking-wider block mb-1 uppercase">PRODUCTS</span>
-            Related Product
-          </h2>
+      {relatedProducts.length > 0 && (
+        <div className="mt-8">
+          <div className="mb-8 relative">
+            <h2 className="text-xl lg:text-2xl font-bold text-black border-l-4 border-primary pl-3">
+              <span className="text-primary text-xs tracking-wider block mb-1 uppercase">PRODUCTS</span>
+              Related Product
+            </h2>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4 lg:gap-5">
+            {relatedProducts.slice(0, 5).map((related, idx) => (
+              <ProductCard key={related.id} product={related} priority={idx < 4} />
+            ))}
+          </div>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4 lg:gap-5">
-          {mockProducts.filter(p => p.id !== product.id).slice(0, 5).map((related, idx) => (
-            <ProductCard key={related.id} product={related} priority={idx < 4} />
-          ))}
-        </div>
-      </div>
+      )}
     </div>
   );
 }

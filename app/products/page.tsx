@@ -1,17 +1,74 @@
 "use client";
 
-import { useState } from "react";
-import { mockProducts } from "@/data/mock";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { ProductCard } from "@/components/product/ProductCard";
 import { CategorySidebar } from "@/components/product/CategorySidebar";
-import { Filter } from "lucide-react";
+import { Filter, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { getProducts } from "@/lib/api";
+import { Product, PaginationMeta } from "@/types";
 
 export default function ProductsPage() {
+  const searchParams = useSearchParams();
+  const categorySlug = searchParams.get("category") || undefined;
+  const searchQuery = searchParams.get("search") || undefined;
+
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [pagination, setPagination] = useState<PaginationMeta | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [page, setPage] = useState(1);
+
+  useEffect(() => {
+    // Reset when filters change
+    setPage(1);
+    setProducts([]);
+    setLoading(true);
+
+    async function fetchProducts() {
+      try {
+        const res = await getProducts({
+          category: categorySlug,
+          search: searchQuery,
+          page: 1,
+          per_page: 20,
+        });
+        setProducts(res.data);
+        setPagination(res.pagination);
+      } catch (error) {
+        console.error("Failed to fetch products:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchProducts();
+  }, [categorySlug, searchQuery]);
+
+  const loadMore = async () => {
+    if (!pagination?.has_more || loadingMore) return;
+    const nextPage = page + 1;
+    setLoadingMore(true);
+    try {
+      const res = await getProducts({
+        category: categorySlug,
+        search: searchQuery,
+        page: nextPage,
+        per_page: 20,
+      });
+      setProducts(prev => [...prev, ...res.data]);
+      setPagination(res.pagination);
+      setPage(nextPage);
+    } catch (error) {
+      console.error("Failed to load more:", error);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   return (
-    <div className="max-w-[1440px] mx-auto px-4 lg:px-8 py-6 flex gap-6 relative">
+    <div className="max-w-[1320px] mx-auto px-4 lg:px-8 py-6 flex gap-6 relative">
       
       {/* Desktop Sidebar */}
       <div className="hidden lg:block w-[260px] shrink-0">
@@ -51,11 +108,45 @@ export default function ProductsPage() {
 
       {/* Product Grid */}
       <div className="flex-1">
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-3 md:gap-4 lg:gap-5">
-          {mockProducts.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
+        {loading ? (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-3 md:gap-4 lg:gap-5">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="bg-gray-200 animate-pulse rounded-[10px] aspect-[4/5]" />
+            ))}
+          </div>
+        ) : products.length === 0 ? (
+          <div className="text-center py-20 text-muted-text">
+            <p className="text-lg font-medium">No products found</p>
+            <p className="text-sm mt-2">Try adjusting your filters or search query.</p>
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-3 md:gap-4 lg:gap-5">
+              {products.map((product, idx) => (
+                <ProductCard key={product.id} product={product} priority={idx < 4} />
+              ))}
+            </div>
+
+            {pagination?.has_more && (
+              <div className="flex justify-center mt-8">
+                <button
+                  onClick={loadMore}
+                  disabled={loadingMore}
+                  className="bg-black text-white px-8 py-3 rounded-md font-medium hover:bg-gray-800 transition-colors disabled:opacity-50 flex items-center gap-2"
+                >
+                  {loadingMore ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Loading...
+                    </>
+                  ) : (
+                    `Load More (${pagination.total - products.length} remaining)`
+                  )}
+                </button>
+              </div>
+            )}
+          </>
+        )}
       </div>
 
     </div>

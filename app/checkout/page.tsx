@@ -1,17 +1,93 @@
 "use client";
 
 import { useCartStore } from "@/store/cart";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
-import { Trash2, Plus, Minus } from "lucide-react";
+import Link from "next/link";
+import { Trash2, Plus, Minus, Loader2, CheckCircle } from "lucide-react";
+import { getSettings, placeOrder } from "@/lib/api";
+import { useRouter } from "next/navigation";
 
 export default function CheckoutPage() {
-  const { items, updateQuantity, removeItem, getTotalPrice } = useCartStore();
+  const router = useRouter();
+  const { items, updateQuantity, removeItem, getTotalPrice, clearCart } = useCartStore();
   const [shippingOption, setShippingOption] = useState("inside");
-  const shippingCost = shippingOption === "inside" ? 80 : 150;
+  const [shippingRates, setShippingRates] = useState({ inside: 80, outside: 150 });
+  
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [address, setAddress] = useState("");
+  const [note, setNote] = useState("");
+  
+  const [submitting, setSubmitting] = useState(false);
+  const [success, setSuccess] = useState<{ orderId: number; total: number } | null>(null);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    getSettings().then(settings => {
+      if (settings?.delivery_charge) {
+        setShippingRates({
+          inside: parseInt(settings.delivery_charge.inside_dhaka) || 80,
+          outside: parseInt(settings.delivery_charge.outside_dhaka) || 150,
+        });
+      }
+    }).catch(console.error);
+  }, []);
+
+  const shippingCost = shippingOption === "inside" ? shippingRates.inside : shippingRates.outside;
   
   const totalPrice = getTotalPrice();
   const grandTotal = totalPrice + shippingCost;
+
+  const handleSubmit = async () => {
+    setError("");
+
+    if (!name.trim()) { setError("নাম লিখুন"); return; }
+    if (!phone.trim() || phone.length < 11) { setError("সঠিক মোবাইল নাম্বার দিন"); return; }
+    if (!address.trim()) { setError("ঠিকানা লিখুন"); return; }
+    if (items.length === 0) { setError("কার্ট খালি"); return; }
+
+    setSubmitting(true);
+    try {
+      const res = await placeOrder({
+        name: name.trim(),
+        phone: phone.trim(),
+        address: address.trim(),
+        note: note.trim(),
+        shipping: shippingOption === "inside" ? "Inside Dhaka" : "Outside Dhaka",
+        items: items.map(item => ({
+          id: item.product.id,
+          quantity: item.quantity,
+        })),
+      });
+      setSuccess({ orderId: res.order.id, total: res.order.total });
+      clearCart();
+    } catch (err: any) {
+      setError(err.message || "অর্ডার প্লেস করতে সমস্যা হয়েছে। আবার চেষ্টা করুন।");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (success) {
+    return (
+      <div className="max-w-[1440px] mx-auto px-4 lg:px-8 py-16 flex items-center justify-center min-h-[60vh]">
+        <div className="bg-white rounded-lg shadow-xl w-full max-w-[500px] p-8 md:p-12 text-center border border-border-color">
+          <CheckCircle className="w-20 h-20 text-discount-green mx-auto mb-6" />
+          <h2 className="text-3xl font-bold text-black mb-3">অর্ডার সফল হয়েছে!</h2>
+          <p className="text-muted-text text-lg mb-2">Order #{success.orderId}</p>
+          <p className="text-2xl font-bold text-primary mb-8">Total: {success.total} Tk</p>
+          <p className="text-base text-muted-text mb-8">আমরা শীঘ্রই আপনার সাথে যোগাযোগ করবো। ধন্যবাদ আমাদের সাথে থাকার জন্য।</p>
+          <Link
+            href="/"
+            className="inline-block bg-black text-white font-bold text-lg py-4 px-10 rounded-md hover:bg-gray-800 transition-colors"
+          >
+            হোম পেজে ফিরে যান
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-[1440px] mx-auto px-4 lg:px-8 py-8">
@@ -80,19 +156,27 @@ export default function CheckoutPage() {
                   </div>
                 </div>
               ))}
+              
+              {items.length === 0 && (
+                <div className="p-8 text-center text-muted-text">
+                  আপনার কার্ট খালি।
+                </div>
+              )}
             </div>
             
             {/* Action Bar */}
-            <div className="p-4 border-t border-border-color flex justify-center">
-              <button className="text-sale-red border border-sale-red px-6 py-2 rounded text-sm hover:bg-sale-red hover:text-white transition-colors">
-                Add more products to get free shipping
-              </button>
-            </div>
+            {items.length > 0 && (
+              <div className="p-4 border-t border-border-color flex justify-center">
+                <Link href="/products" className="text-sale-red border border-sale-red px-6 py-2 rounded text-sm hover:bg-sale-red hover:text-white transition-colors">
+                  Add more products to get free shipping
+                </Link>
+              </div>
+            )}
           </div>
 
-          <button className="text-primary text-sm flex items-center gap-1 hover:underline">
+          <Link href="/products" className="inline-flex text-primary text-sm items-center gap-1 hover:underline">
             ← Continue Shopping
-          </button>
+          </Link>
 
           {/* Coupon & Totals (Desktop Left Side Bottom) */}
           <div className="flex flex-col md:flex-row justify-between items-start gap-6 mt-6">
@@ -140,6 +224,8 @@ export default function CheckoutPage() {
             <h3 className="font-bold mb-2">প্রয়োজনীয় কোনো তথ্য দিতে এই এখানে লিখুন:</h3>
             <textarea 
               rows={4}
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
               placeholder="দয়া করে আপনার অর্ডারের জন্য যে কোনও বিশেষ নির্দেশিকা বা পছন্দ দিন এখানে বলতে পারেন।"
               className="w-full border border-border-color rounded p-3 text-sm focus:border-primary outline-none resize-none"
             ></textarea>
@@ -153,11 +239,19 @@ export default function CheckoutPage() {
               অর্ডার কনফার্ম করতে আপনার নাম, মোবাইল নাম্বার, ঠিকানা লিখে অর্ডার করুন বাটনে ক্লিক করুন।
             </h3>
 
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-sale-red text-sm p-3 rounded mb-4 text-center font-medium">
+                {error}
+              </div>
+            )}
+
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-bold mb-1">নাম :</label>
                 <input 
                   type="text" 
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
                   placeholder="এখানে নাম লিখুন..." 
                   className="w-full border border-border-color rounded px-3 py-2 text-sm focus:border-primary outline-none"
                 />
@@ -167,6 +261,8 @@ export default function CheckoutPage() {
                 <label className="block text-sm font-bold mb-1">ঠিকানা :</label>
                 <input 
                   type="text" 
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
                   placeholder="বাসা নং, রোড নং, থানা/উপজেলা, জেলা" 
                   className="w-full border border-border-color rounded px-3 py-2 text-sm focus:border-primary outline-none"
                 />
@@ -176,6 +272,8 @@ export default function CheckoutPage() {
                 <label className="block text-sm font-bold mb-1">মোবাইল নাম্বার :</label>
                 <input 
                   type="text" 
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
                   placeholder="মোবাইল নম্বর..." 
                   className="w-full border border-border-color rounded px-3 py-2 text-sm focus:border-primary outline-none"
                 />
@@ -192,7 +290,7 @@ export default function CheckoutPage() {
                       onChange={() => setShippingOption('inside')}
                       className="w-4 h-4 text-primary accent-primary"
                     />
-                    <span className="text-sm font-medium">Inside Dhaka</span>
+                    <span className="text-sm font-medium">Inside Dhaka ({shippingRates.inside} Tk)</span>
                   </label>
                   <label className={`flex items-center gap-3 border rounded p-3 cursor-pointer ${shippingOption === 'outside' ? 'border-primary shadow-sm bg-white' : 'border-border-color'}`}>
                     <input 
@@ -202,7 +300,7 @@ export default function CheckoutPage() {
                       onChange={() => setShippingOption('outside')}
                       className="w-4 h-4 text-primary accent-primary"
                     />
-                    <span className="text-sm font-medium">Outside Dhaka</span>
+                    <span className="text-sm font-medium">Outside Dhaka ({shippingRates.outside} Tk)</span>
                   </label>
                 </div>
               </div>
@@ -226,8 +324,19 @@ export default function CheckoutPage() {
                 </div>
               </div>
 
-              <button className="w-full bg-[#00e5ff] text-white font-bold text-lg py-3 rounded mt-6 hover:bg-[#00d0eb] transition-colors shadow-md">
-                Place Order
+              <button 
+                onClick={handleSubmit}
+                disabled={submitting || items.length === 0}
+                className="w-full bg-[#00e5ff] text-white font-bold text-lg py-3 rounded mt-6 hover:bg-[#00d0eb] transition-colors shadow-md disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {submitting ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    অর্ডার করা হচ্ছে...
+                  </>
+                ) : (
+                  "Place Order"
+                )}
               </button>
             </div>
           </div>

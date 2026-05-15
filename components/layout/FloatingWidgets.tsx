@@ -37,14 +37,6 @@ export function FloatingWidgets() {
           <ArrowUp className="w-5 h-5" />
         </button>
       </div>
-
-      {/* Live Chat */}
-      <div className="pointer-events-auto flex flex-col items-center">
-        <button className="w-12 h-12 bg-primary hover:bg-primary-dark text-white rounded-full flex items-center justify-center shadow-lg transition-colors mb-1">
-          <MessageSquare className="w-6 h-6" />
-        </button>
-        <span className="text-[10px] font-bold text-black drop-shadow-sm bg-white/80 px-1 rounded">Live Chat</span>
-      </div>
     </div>
   );
 }

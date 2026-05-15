@@ -3,42 +3,59 @@
 import { Phone, Search, ShoppingCart, User, Menu, ChevronDown, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useCartStore } from "@/store/cart";
 import { cn } from "@/lib/utils";
 
 import { SearchDropdown } from "@/components/product/SearchDropdown";
+import { getSettings } from "@/lib/api";
+import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 
-export function Header() {
+export function Header({ initialSettings }: { initialSettings?: any }) {
   const { items, setDrawerOpen } = useCartStore();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false); // Mobile search
+  const [settings, setSettings] = useState<any>(initialSettings || null);
   
   const totalItems = items.reduce((acc, item) => acc + item.quantity, 0);
+
+  useEffect(() => {
+    getSettings().then(setSettings).catch(console.error);
+  }, []);
 
   return (
     <>
       {/* Top Black Strip */}
-      <div className="bg-black text-white text-xs py-2 px-4 flex justify-between items-center z-50 relative">
-        <div className="max-w-[1440px] mx-auto w-full flex justify-between items-center px-4 overflow-hidden">
-          <div className="truncate flex-1 pr-4 whitespace-nowrap">
-            Stylonbd is a fashion brand of specially designed ethnic wear like panjabi, pajama, kabli set, koty, sherowani etc. It also sells fashion
+      <div className="bg-black text-white text-xs py-2 px-4 flex justify-between items-center z-50 relative overflow-hidden">
+        <div className="max-w-[1320px] mx-auto w-full flex justify-between items-center px-4">
+          <div className="flex-1 pr-4 whitespace-nowrap">
+            <div className="animate-marquee inline-block">
+              {settings?.scroll_text || ""}
+            </div>
           </div>
           <div className="flex items-center gap-4 shrink-0 font-medium">
             <span className="flex items-center gap-1">
-              <Phone className="w-3 h-3" /> +88 01741-476000
+              <Phone className="w-3 h-3" /> {settings?.company?.phone || ""}
             </span>
-            <span className="flex items-center gap-1">
-              {/* WhatsApp Icon using Lucide Phone for now */}
-              <Phone className="w-3 h-3" /> +88 01741-476000
-            </span>
+            {settings?.company?.whatsapp && (
+              <a 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                aria-label="WhatsApp" 
+                title="Chat on WhatsApp" 
+                href={`https://wa.me/${settings.company.whatsapp.replace(/[^0-9]/g, "")}`}
+                className="flex items-center gap-1 hover:text-[#25D366] transition-colors"
+              >
+                <WhatsAppIcon className="w-3 h-3" /> {settings.company.whatsapp}
+              </a>
+            )}
           </div>
         </div>
       </div>
 
       {/* Main Navbar */}
       <header className="bg-white sticky top-0 z-40 border-b border-border-color shadow-sm">
-        <div className="max-w-[1440px] mx-auto px-4 lg:px-8 h-[72px] flex items-center justify-between gap-4">
+        <div className="max-w-[1320px] mx-auto px-4 lg:px-8 h-[72px] flex items-center justify-between gap-4">
           
           {/* Mobile Menu & Logo */}
           <div className="flex items-center gap-4 lg:w-1/4">
@@ -49,13 +66,35 @@ export function Header() {
               <Menu className="w-6 h-6" />
             </button>
             <Link href="/" className="flex items-center gap-2">
-              <div className="text-primary font-bold text-2xl flex items-center gap-1 tracking-tight">
-                {/* Purple Icon/Logo representation */}
-                <div className="w-8 h-8 rounded-md bg-primary flex items-center justify-center text-white">
-                  <span className="text-lg">S</span>
+              {settings?.logo ? (
+                <div className="relative h-10 w-32 md:w-40">
+                  {/* Desktop Logo */}
+                  <Image 
+                    src={settings.logo.desktop?.startsWith('http') 
+                      ? settings.logo.desktop 
+                      : `http://127.0.0.1:8000${settings.logo.desktop}`} 
+                    alt={settings?.company?.name || "Stylon"} 
+                    fill 
+                    className="object-contain hidden md:block" 
+                  />
+                  {/* Mobile Logo */}
+                  <Image 
+                    src={settings.logo.mobile?.startsWith('http') 
+                      ? settings.logo.mobile 
+                      : `http://127.0.0.1:8000${settings.logo.mobile || settings.logo.desktop}`} 
+                    alt={settings?.company?.name || "Stylon"} 
+                    fill 
+                    className="object-contain md:hidden" 
+                  />
                 </div>
-                STYLON
-              </div>
+              ) : (
+                <div className="text-primary font-bold text-2xl flex items-center gap-1 tracking-tight">
+                  <div className="w-8 h-8 rounded-md bg-primary flex items-center justify-center text-white">
+                    <span className="text-lg">S</span>
+                  </div>
+                  STYLON
+                </div>
+              )}
             </Link>
           </div>
 
