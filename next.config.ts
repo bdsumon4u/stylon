@@ -1,12 +1,10 @@
 import type { NextConfig } from "next";
 
-const isDev = process.env.NODE_ENV === "development";
 
 const nextConfig: NextConfig = {
   images: {
-    // Skip image optimization in dev to avoid "private IP" errors with local Laravel
-    // In production, Laravel will be on a real domain and optimization works normally
-    unoptimized: isDev,
+    // Disable image optimization to avoid issues with local/private IP backend images
+    unoptimized: true,
     remotePatterns: [
       {
         protocol: "http",

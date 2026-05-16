@@ -2,13 +2,16 @@
 
 import { use, useState, useEffect } from "react";
 import Image from "next/image";
-import { Minus, Plus, ChevronDown, ChevronUp, ShoppingCart, FileText, Video, Share2, ShieldCheck, ChevronLeft, ChevronRight } from "lucide-react";
+import Link from "next/link";
+import { Minus, Plus, ChevronDown, ChevronUp, ShoppingCart, FileText, Video, Share2, ShieldCheck, ChevronLeft, ChevronRight, Star, MessageSquare, CheckCircle, Phone } from "lucide-react";
 import { useCartStore } from "@/store/cart";
 import { ProductCard } from "@/components/product/ProductCard";
-import { getProduct, getRelatedProducts } from "@/lib/api";
+import { getProduct, getRelatedProducts, getProductReviews, submitProductReview, getSettings } from "@/lib/api";
 import { Product } from "@/types";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { FreeMode, Navigation, Thumbs, Mousewheel, Keyboard } from "swiper/modules";
+import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
+import { MessengerIcon } from "@/components/icons/BrandIcons";
 import "swiper/css";
 import "swiper/css/free-mode";
 import "swiper/css/navigation";
@@ -26,18 +29,18 @@ function ZoomableImage({ src, alt, priority }: { src: string, alt: string, prior
   };
 
   return (
-    <div 
+    <div
       className="relative w-full h-full overflow-hidden cursor-crosshair group"
       onMouseEnter={() => setIsZoomed(true)}
       onMouseLeave={() => setIsZoomed(false)}
       onMouseMove={handleMouseMove}
     >
-      <Image 
-        src={src} 
-        alt={alt} 
-        fill 
-        sizes="(max-width: 1024px) 100vw, 540px" 
-        className={`object-cover transition-transform ${isZoomed ? "duration-0" : "duration-300"}`} 
+      <Image
+        src={src}
+        alt={alt}
+        fill
+        sizes="(max-width: 1024px) 100vw, 540px"
+        className={`object-cover transition-transform ${isZoomed ? "duration-0" : "duration-300"}`}
         priority={priority}
         style={{
           transformOrigin: `${position.x} ${position.y}`,
@@ -50,32 +53,69 @@ function ZoomableImage({ src, alt, priority }: { src: string, alt: string, prior
 
 export default function ProductDetailsPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
-  
+
   const { addItem, setOrderModalOpen } = useCartStore();
   const [product, setProduct] = useState<Product | null>(null);
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
+  const [settings, setSettings] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
   const [activeAccordion, setActiveAccordion] = useState<string>("description");
   const [thumbsSwiper, setThumbsSwiper] = useState<any>(null);
 
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [reviewsPage, setReviewsPage] = useState(1);
+  const [hasMoreReviews, setHasMoreReviews] = useState(false);
+  const [loadingMoreReviews, setLoadingMoreReviews] = useState(false);
+  const [reviewForm, setReviewForm] = useState({
+    name: "",
+    phone: "",
+    rating: 5,
+    review: "",
+    order_id: ""
+  });
+  const [submittingReview, setSubmittingReview] = useState(false);
+  const [reviewMessage, setReviewMessage] = useState({ type: "", text: "" });
+
   useEffect(() => {
     async function fetchData() {
       try {
-        const [prod, related] = await Promise.all([
+        const [prod, related, reviewsRes, settingsRes] = await Promise.all([
           getProduct(slug),
           getRelatedProducts(slug),
+          getProductReviews(slug, 1),
+          getSettings(),
         ]);
         setProduct(prod);
         setRelatedProducts(related);
+        setReviews(reviewsRes.data || []);
+        setHasMoreReviews(reviewsRes.pagination?.current_page < reviewsRes.pagination?.last_page);
+        setReviewsPage(1);
+        setSettings(settingsRes);
       } catch (error) {
-        console.error("Failed to fetch product:", error);
+        console.error("Failed to fetch product data:", error);
       } finally {
         setLoading(false);
       }
     }
     fetchData();
   }, [slug]);
+
+  const loadMoreReviews = async () => {
+    if (loadingMoreReviews || !hasMoreReviews) return;
+    setLoadingMoreReviews(true);
+    try {
+      const nextPage = reviewsPage + 1;
+      const res = await getProductReviews(slug, nextPage);
+      setReviews([...reviews, ...(res.data || [])]);
+      setReviewsPage(nextPage);
+      setHasMoreReviews(res.pagination?.current_page < res.pagination?.last_page);
+    } catch (error) {
+      console.error("Failed to load more reviews:", error);
+    } finally {
+      setLoadingMoreReviews(false);
+    }
+  };
 
   if (loading || !product) {
     return (
@@ -96,10 +136,10 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ slug:
     );
   }
 
-  const allImages = product.images && product.images.length > 0 
-    ? product.images 
+  const allImages = product.images && product.images.length > 0
+    ? product.images
     : [product.image, ...(product.thumbnails || [])];
-  
+
   const handleAddToCart = () => {
     addItem(product, quantity);
   };
@@ -109,9 +149,25 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ slug:
     setOrderModalOpen(true);
   };
 
+  const handleSubmitReview = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmittingReview(true);
+    setReviewMessage({ type: "", text: "" });
+
+    try {
+      const res = await submitProductReview(slug, reviewForm);
+      setReviewMessage({ type: "success", text: res.message });
+      setReviewForm({ name: "", phone: "", rating: 5, review: "", order_id: "" });
+    } catch (error: any) {
+      setReviewMessage({ type: "error", text: error.message || "Failed to submit review." });
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
+
   return (
     <div className="max-w-[1320px] mx-auto px-4 lg:px-8 py-8 flex flex-col gap-12">
-      
+
       {/* Product Top Section */}
       <div className="flex flex-col lg:flex-row gap-8 lg:gap-12">
         {/* Left - Images */}
@@ -142,7 +198,7 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ slug:
               </div>
             )}
           </div>
-          
+
           {/* Thumbnails */}
           {allImages.length > 1 && (
             <div className="h-24 relative group/thumbs">
@@ -173,7 +229,7 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ slug:
                   </SwiperSlide>
                 ))}
               </Swiper>
-              
+
               {/* Custom Navigation for Thumbs */}
               <button className="thumbs-prev absolute left-[-15px] top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white shadow-md rounded-full flex items-center justify-center opacity-0 group-hover/thumbs:opacity-100 transition-opacity disabled:!hidden border border-border-color">
                 <ChevronLeft className="w-5 h-5 text-black" />
@@ -190,14 +246,22 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ slug:
           <h1 className="text-2xl lg:text-3xl font-bold text-black mb-2 leading-tight">
             {product.name}
           </h1>
-          
-          <div className="flex items-center gap-4 text-sm text-muted-text mb-6">
-            <span>Category: <span className="font-medium text-black">{product.category}</span></span>
-            {product.brand && <span>Brand: <span className="font-medium text-black">{product.brand}</span></span>}
+
+          <div className="flex items-center gap-4 mb-4">
+            <div className="flex items-center gap-1">
+              {[...Array(5)].map((_, i) => (
+                <Star
+                  key={i}
+                  className={`w-4 h-4 ${i < Math.floor(product.averageRating || 0) ? "text-yellow-400 fill-yellow-400" : "text-gray-300"}`}
+                />
+              ))}
+              <span className="text-sm font-bold text-black ml-1">{(product.averageRating || 0).toFixed(1)}</span>
+            </div>
+            <span className="text-sm text-muted-text">({product.reviewsCount || 0} Reviews)</span>
           </div>
 
           {/* Pricing */}
-          <div className="flex items-center gap-4 mb-6">
+          <div className="flex items-center gap-4 mb-4">
             {product.salePrice && product.salePrice < product.regularPrice ? (
               <>
                 <span className="text-sale-red line-through text-lg font-medium">{product.regularPrice} Tk</span>
@@ -214,21 +278,17 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ slug:
           </div>
 
           {product.shortDescription && (
-          <p className="text-black mb-6 leading-relaxed text-[15px]">
-            {product.shortDescription}
-          </p>
+            <p className="text-black mb-4 leading-relaxed text-[15px]">
+              {product.shortDescription}
+            </p>
           )}
 
-          <div className="mb-8">
+          <div className="mb-4 inline-flex gap-x-2">
             <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-bold border ${product.inStock ? 'bg-[#e8f5e9] text-discount-green border-[#c8e6c9]' : 'bg-red-50 text-sale-red border-red-200'}`}>
-              Stock Status : <span>{product.inStock ? 'In Stock' : 'Out of Stock'}</span>
+              <span>{product.inStock ? product.stockCount === -1 ? 'In Stock' : product.stockCount + ' ' + 'In Stock' : 'Out of Stock'}</span>
             </span>
-          </div>
-
-          {/* Actions */}
-          <div className="flex flex-col sm:flex-row items-center gap-4 w-full border-b border-border-color pb-8 mb-8">
-            <div className="flex items-center border border-border-color rounded w-full sm:w-auto h-[48px]">
-              <button 
+            <div className="flex items-center border border-border-color rounded w-auto h-[48px]">
+              <button
                 className="px-4 py-2 text-black hover:bg-gray-100 h-full flex items-center justify-center disabled:opacity-50 transition-colors"
                 onClick={() => setQuantity(Math.max(1, quantity - 1))}
                 disabled={quantity <= 1}
@@ -238,45 +298,116 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ slug:
               <span className="px-4 py-2 text-base text-black text-center min-w-[50px] border-x border-border-color font-bold flex items-center justify-center h-full bg-white">
                 {quantity}
               </span>
-              <button 
+              <button
                 className="px-4 py-2 text-black hover:bg-gray-100 h-full flex items-center justify-center transition-colors"
                 onClick={() => setQuantity(quantity + 1)}
               >
                 <Plus className="w-4 h-4" />
               </button>
             </div>
-            
-            <div className="flex gap-4 w-full sm:w-auto flex-1">
-              <button 
+          </div>
+
+          {/* Actions */}
+          <div className="flex gap-4 w-full mb-6">
+            <div className="flex flex-col md:flex-row items-center gap-4 w-full sm:w-auto flex-1">
+              <button
                 onClick={handleAddToCart}
-                className="relative flex-1 bg-white border-[2px] border-black text-black hover:bg-black hover:text-white font-bold py-3 px-6 rounded-md transition-all duration-300 transform hover:-translate-y-1 hover:shadow-xl active:scale-[0.98] text-center h-[48px] flex items-center justify-center gap-2 group overflow-hidden"
+                className="w-full relative flex-1 bg-white border-[2px] border-black text-black hover:bg-black hover:text-white font-bold py-3 px-6 rounded-md transition-all duration-300 transform hover:-translate-y-1 hover:shadow-xl active:scale-[0.98] text-center h-[48px] flex items-center justify-center gap-2 group overflow-hidden"
               >
                 <div className="absolute bottom-0 left-0 w-6 h-6 bg-black group-hover:bg-white transition-colors" style={{ clipPath: 'polygon(0 0, 0 100%, 100% 100%)' }}></div>
                 <ShoppingCart className="w-5 h-5 transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-12" />
                 <span className="relative z-10">Add To Cart</span>
               </button>
-              <button 
+              <button
                 onClick={handleOrderNow}
-                className="flex-1 bg-black border-[2px] border-black text-white hover:bg-gray-800 font-bold py-3 px-6 rounded-md transition-all duration-300 transform hover:-translate-y-1 hover:shadow-xl active:scale-[0.98] text-center h-[48px] flex items-center justify-center"
+                className="w-full flex-1 bg-black border-[2px] border-black text-white hover:bg-gray-800 font-bold py-3 px-6 rounded-md transition-all duration-300 transform hover:-translate-y-1 hover:shadow-xl active:scale-[0.98] text-center h-[48px] flex items-center justify-center"
               >
                 অর্ডার করুন
               </button>
             </div>
           </div>
 
+          {/* Call for order box */}
+          <div className="border-[2px] border-dashed border-border-color rounded-md p-3 text-center mb-3">
+            <p className="text-black font-bold text-sm mb-2">এই পণ্য সম্পর্কে প্রশ্ন আছে? অনুগ্রহপূর্বক কল করুন:</p>
+            <div className="flex flex-col gap-1">
+              {settings?.call_for_order?.split(' ').map((phone: string, idx: number) => {
+                const trimmedPhone = phone.trim();
+                if (!trimmedPhone) return null;
+                return (
+                  <a
+                    key={idx}
+                    href={`tel:${trimmedPhone}`}
+                    className="flex items-center justify-center gap-2 text-lg font-bold hover:opacity-80 transition-opacity"
+                  >
+                    <Phone className="w-5 h-5" />
+                    <span>{trimmedPhone}</span>
+                  </a>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="flex justify-center gap-4 mb-3">
+            {/* WhatsApp Button */}
+            {settings?.company?.whatsapp && (
+              <div className="flex justify-center">
+                <a
+                  href={`https://wa.me/${settings.company.whatsapp.replace(/\+/g, '')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-[#25D366] hover:bg-[#128C7E] text-white font-bold py-2 px-8 rounded-md flex items-center gap-2.5 transition-all hover:shadow-lg active:scale-95"
+                >
+                  <WhatsAppIcon className="w-5 h-5 fill-white" />
+                  <span>WhatsApp</span>
+                </a>
+              </div>
+            )}
+            {/* Messenger Button */}
+            {settings?.company?.messenger && (
+              <div className="flex justify-center">
+                <a
+                  href={settings.company.messenger}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-[#0084FF] hover:bg-[#0073E6] text-white font-bold py-2 px-8 rounded-md flex items-center gap-2.5 transition-all hover:shadow-lg active:scale-95"
+                >
+                  <MessengerIcon className="w-5 h-5 fill-white" />
+                  <span>Messenger</span>
+                </a>
+              </div>
+            )}
+          </div>
+
+          {/* Categories Section */}
+          <div className="flex items-center gap-4 text-sm text-muted-text mb-6 border border-border-color p-4 rounded-md">
+            <span className="font-bold text-black">Categories: </span>
+            <div className="flex flex-wrap gap-2">
+              {product.categories?.map((cat) => (
+                <Link 
+                  key={cat.id} 
+                  href={`/shop?category=${encodeURIComponent(cat.slug)}`}
+                  className="bg-primary text-white px-2.5 py-1 rounded text-xs font-bold hover:bg-primary-dark transition-colors"
+                >
+                  {cat.name}
+                </Link>
+              ))}
+            </div>
+          </div>
+
           {/* Accordions */}
           <div className="space-y-4">
-            <AccordionItem 
-              title="Product Description" 
+            <AccordionItem
+              title="Product Description"
               icon={<FileText className="w-4 h-4" />}
               isOpen={activeAccordion === "description"}
               onClick={() => setActiveAccordion(activeAccordion === "description" ? "" : "description")}
             >
               <div className="text-sm text-muted-text" dangerouslySetInnerHTML={{ __html: product.description || "This exclusive dress is designed to give you a premium and elegant look. Made from high-quality materials to ensure maximum comfort and durability." }} />
             </AccordionItem>
-            
-            <AccordionItem 
-              title="Product Video" 
+
+            <AccordionItem
+              title="Product Video"
               icon={<Video className="w-4 h-4" />}
               isOpen={activeAccordion === "video"}
               onClick={() => setActiveAccordion(activeAccordion === "video" ? "" : "video")}
@@ -285,9 +416,9 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ slug:
                 Video Unavailable
               </div>
             </AccordionItem>
-            
-            <AccordionItem 
-              title="Why Choose Us" 
+
+            <AccordionItem
+              title="Why Choose Us"
               icon={<Share2 className="w-4 h-4" />}
               isOpen={activeAccordion === "whyus"}
               onClick={() => setActiveAccordion(activeAccordion === "whyus" ? "" : "whyus")}
@@ -300,15 +431,133 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ slug:
               </ul>
             </AccordionItem>
 
-            <AccordionItem 
-              title="Return Policy" 
+            <AccordionItem
+              title="Return Policy"
               icon={<ShieldCheck className="w-4 h-4" />}
               isOpen={activeAccordion === "return"}
               onClick={() => setActiveAccordion(activeAccordion === "return" ? "" : "return")}
             >
-              <p className="text-sm text-muted-text">
-                We offer a 3-day return policy for unused and unwashed products with all original tags intact. Please contact our support team for any return queries.
-              </p>
+              <div 
+                className="text-sm text-muted-text" 
+                dangerouslySetInnerHTML={{ __html: product.deliveryText || "We offer a 3-day return policy for unused and unwashed products with all original tags intact. Please contact our support team for any return queries." }} 
+              />
+            </AccordionItem>
+
+            <AccordionItem
+              title={`Customer Reviews (${product.reviewsCount})`}
+              icon={<MessageSquare className="w-4 h-4" />}
+              isOpen={activeAccordion === "reviews"}
+              onClick={() => setActiveAccordion(activeAccordion === "reviews" ? "" : "reviews")}
+            >
+              <div className="space-y-6">
+                {/* Review List */}
+                <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                  {reviews.length > 0 ? (
+                    reviews.map((review) => (
+                      <div key={review.id} className="border-b border-gray-100 pb-4 last:border-0">
+                        <div className="flex justify-between items-start mb-1">
+                          <span className="font-bold text-sm text-black">{review.user_name}</span>
+                          <span className="text-[10px] text-muted-text">{review.created_at}</span>
+                        </div>
+                        <div className="flex gap-0.5 mb-2">
+                          {[...Array(5)].map((_, i) => (
+                            <Star key={i} className={`w-3 h-3 ${i < review.rating ? "text-yellow-400 fill-yellow-400" : "text-gray-300"}`} />
+                          ))}
+                        </div>
+                        <p className="text-sm text-muted-text leading-relaxed italic">"{review.review}"</p>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-text text-center py-4">No reviews yet. Be the first to review!</p>
+                  )}
+
+                  {hasMoreReviews && (
+                    <div className="pt-2 text-center">
+                      <button
+                        onClick={loadMoreReviews}
+                        disabled={loadingMoreReviews}
+                        className="text-xs font-bold text-primary hover:underline transition-all disabled:text-muted-text"
+                      >
+                        {loadingMoreReviews ? "Loading..." : "Load More Reviews"}
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Review Form */}
+                <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
+                  <h4 className="font-bold text-sm text-black mb-4 flex items-center gap-2">
+                    <Star className="w-4 h-4 text-primary fill-primary" />
+                    Write a Review
+                  </h4>
+
+                  {reviewMessage.text && (
+                    <div className={`p-3 rounded-md text-xs mb-4 flex items-center gap-2 ${reviewMessage.type === "success" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
+                      {reviewMessage.type === "success" ? <CheckCircle className="w-4 h-4" /> : null}
+                      {reviewMessage.text}
+                    </div>
+                  )}
+
+                  <form onSubmit={handleSubmitReview} className="space-y-3">
+                    <div className="grid md:grid-cols-3 gap-3">
+                      <input
+                        type="text"
+                        placeholder="Order ID"
+                        required
+                        className="w-full bg-white border border-gray-200 rounded px-3 py-2 text-sm focus:outline-none focus:border-primary transition-colors"
+                        value={reviewForm.order_id}
+                        onChange={(e) => setReviewForm({ ...reviewForm, order_id: e.target.value })}
+                      />
+                      <input
+                        type="text"
+                        placeholder="Your Name"
+                        required
+                        className="bg-white border border-gray-200 rounded px-3 py-2 text-sm focus:outline-none focus:border-primary transition-colors"
+                        value={reviewForm.name}
+                        onChange={(e) => setReviewForm({ ...reviewForm, name: e.target.value })}
+                      />
+                      <input
+                        type="tel"
+                        placeholder="Phone Number"
+                        required
+                        className="bg-white border border-gray-200 rounded px-3 py-2 text-sm focus:outline-none focus:border-primary transition-colors"
+                        value={reviewForm.phone}
+                        onChange={(e) => setReviewForm({ ...reviewForm, phone: e.target.value })}
+                      />
+                    </div>
+                    <div className="flex items-center gap-4 py-1">
+                      <span className="text-sm font-medium text-black">Rating:</span>
+                      <div className="flex gap-1">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <button
+                            key={star}
+                            type="button"
+                            onClick={() => setReviewForm({ ...reviewForm, rating: star })}
+                            className="focus:outline-none transition-transform active:scale-125"
+                          >
+                            <Star className={`w-5 h-5 ${star <= reviewForm.rating ? "text-yellow-400 fill-yellow-400" : "text-gray-300"}`} />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <textarea
+                      placeholder="Share your experience..."
+                      required
+                      rows={3}
+                      className="w-full bg-white border border-gray-200 rounded px-3 py-2 text-sm focus:outline-none focus:border-primary transition-colors resize-none"
+                      value={reviewForm.review}
+                      onChange={(e) => setReviewForm({ ...reviewForm, review: e.target.value })}
+                    />
+                    <button
+                      type="submit"
+                      disabled={submittingReview}
+                      className="w-full bg-black text-white font-bold py-2.5 rounded hover:bg-gray-800 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed text-sm"
+                    >
+                      {submittingReview ? "Submitting..." : "Submit Review"}
+                    </button>
+                  </form>
+                </div>
+              </div>
             </AccordionItem>
           </div>
         </div>
@@ -316,7 +565,7 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ slug:
 
       {/* Mobile Sticky Action Bar */}
       <div className="lg:hidden fixed bottom-[72px] left-0 right-0 bg-white border-t border-border-color p-2 px-3 z-40 flex justify-between items-center shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
-        
+
         {/* Left Side: Thumbnail, Price, Qty */}
         <div className="flex items-center gap-2">
           <div className="w-10 h-12 bg-gray-100 rounded relative overflow-hidden border border-border-color shrink-0">
@@ -325,14 +574,14 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ slug:
           <div className="flex flex-col">
             <span className="font-bold text-[13px] text-primary leading-tight">{product.salePrice || product.regularPrice} Tk</span>
             <div className="flex items-center gap-1 mt-0.5">
-              <button 
+              <button
                 className="w-5 h-5 rounded-full border border-border-color flex items-center justify-center text-muted-text bg-white"
                 onClick={() => setQuantity(Math.max(1, quantity - 1))}
               >
                 <Minus className="w-3 h-3" />
               </button>
               <span className="text-xs font-bold text-black min-w-[12px] text-center">{quantity}</span>
-              <button 
+              <button
                 className="w-5 h-5 rounded-full border border-border-color flex items-center justify-center text-muted-text bg-white"
                 onClick={() => setQuantity(quantity + 1)}
               >
@@ -344,14 +593,14 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ slug:
 
         {/* Right Side: Action Buttons */}
         <div className="flex items-center gap-2">
-          <button 
+          <button
             onClick={handleAddToCart}
             className="bg-black text-white px-3 py-2 rounded text-[13px] font-bold flex items-center gap-1.5 active:scale-95 transition-transform"
           >
             <ShoppingCart className="w-4 h-4" />
             Cart
           </button>
-          <button 
+          <button
             onClick={handleOrderNow}
             className="bg-gray-200 text-black px-3 py-2 rounded text-[13px] font-bold active:scale-95 transition-transform"
           >
@@ -383,7 +632,7 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ slug:
 function AccordionItem({ title, icon, children, isOpen, onClick }: { title: string, icon: React.ReactNode, children: React.ReactNode, isOpen: boolean, onClick: () => void }) {
   return (
     <div className="border border-border-color rounded-md overflow-hidden bg-white hover:shadow-sm transition-shadow">
-      <button 
+      <button
         className={`w-full flex justify-between items-center p-4 font-medium text-[15px] text-left transition-colors ${isOpen ? "text-black" : "text-black"}`}
         onClick={onClick}
       >
@@ -393,7 +642,7 @@ function AccordionItem({ title, icon, children, isOpen, onClick }: { title: stri
         </div>
         {isOpen ? <ChevronUp className="w-4 h-4 text-muted-text" /> : <ChevronDown className="w-4 h-4 text-muted-text" />}
       </button>
-      <div 
+      <div
         className={`grid transition-all duration-300 ease-in-out ${isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}
       >
         <div className="overflow-hidden">

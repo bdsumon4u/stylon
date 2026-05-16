@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { ProductCard } from "@/components/product/ProductCard";
 import { CategorySidebar } from "@/components/product/CategorySidebar";
@@ -9,9 +9,9 @@ import { cn } from "@/lib/utils";
 import { getProducts } from "@/lib/api";
 import { Product, PaginationMeta } from "@/types";
 
-export default function ProductsPage() {
+function Products() {
   const searchParams = useSearchParams();
-  const categorySlug = searchParams.get("category") || undefined;
+  const categorySlugs = searchParams.getAll("category[]");
   const searchQuery = searchParams.get("search") || undefined;
 
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
@@ -30,7 +30,7 @@ export default function ProductsPage() {
     async function fetchProducts() {
       try {
         const res = await getProducts({
-          category: categorySlug,
+          category: categorySlugs.length > 0 ? categorySlugs : undefined,
           search: searchQuery,
           page: 1,
           per_page: 20,
@@ -44,7 +44,7 @@ export default function ProductsPage() {
       }
     }
     fetchProducts();
-  }, [categorySlug, searchQuery]);
+  }, [JSON.stringify(categorySlugs), searchQuery]);
 
   const loadMore = async () => {
     if (!pagination?.has_more || loadingMore) return;
@@ -52,7 +52,7 @@ export default function ProductsPage() {
     setLoadingMore(true);
     try {
       const res = await getProducts({
-        category: categorySlug,
+        category: categorySlugs.length > 0 ? categorySlugs : undefined,
         search: searchQuery,
         page: nextPage,
         per_page: 20,
@@ -150,5 +150,17 @@ export default function ProductsPage() {
       </div>
 
     </div>
+  );
+}
+
+export default function ProductsPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="w-10 h-10 animate-spin text-primary" />
+      </div>
+    }>
+      <Products />
+    </Suspense>
   );
 }

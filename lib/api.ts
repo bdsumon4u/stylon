@@ -1,7 +1,13 @@
 import { Product, Category, Slide, PaginatedResponse, ApiResponse } from "@/types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/storefront";
+export const MEDIA_BASE = API_BASE.replace('/api/storefront', '');
 
+export function getMediaUrl(path?: string): string {
+  if (!path) return "";
+  if (path.startsWith('http')) return path;
+  return `${MEDIA_BASE}${path}`;
+}
 const cache = new Map<string, { data: any; timestamp: number }>();
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
@@ -47,10 +53,15 @@ export async function getCategories(): Promise<Category[]> {
   return res.data;
 }
 
+export async function getNestedCategories(): Promise<Category[]> {
+  const res = await fetchApi<ApiResponse<Category[]>>("/categories/nested", { useCache: true });
+  return res.data;
+}
+
 // ─── Products ────────────────────────────────────────────────
 
 export interface ProductsParams {
-  category?: string;
+  category?: string | string[];
   search?: string;
   sort?: "latest" | "price_asc" | "price_desc" | "oldest";
   page?: number;
@@ -59,7 +70,14 @@ export interface ProductsParams {
 
 export async function getProducts(params?: ProductsParams): Promise<PaginatedResponse<Product>> {
   const searchParams = new URLSearchParams();
-  if (params?.category) searchParams.set("category", params.category);
+  
+  if (params?.category) {
+    if (Array.isArray(params.category)) {
+      params.category.forEach(cat => searchParams.append("category[]", cat));
+    } else {
+      searchParams.append("category[]", params.category);
+    }
+  }
   if (params?.search) searchParams.set("search", params.search);
   if (params?.sort) searchParams.set("sort", params.sort);
   if (params?.page) searchParams.set("page", String(params.page));
@@ -124,4 +142,29 @@ export async function placeOrder(payload: CheckoutPayload): Promise<CheckoutResp
     method: "POST",
     body: JSON.stringify(payload),
   });
+}
+
+// ─── Reviews ──────────────────────────────────────────────────
+
+export async function getProductReviews(slug: string, page: number = 1): Promise<any> {
+  return fetchApi<any>(`/products/${slug}/reviews?page=${page}`, { useCache: page === 1 });
+}
+
+export async function submitProductReview(slug: string, payload: any): Promise<any> {
+  return fetchApi<any>(`/products/${slug}/reviews`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+// ─── Pages & Menus ───────────────────────────────────────────
+
+export async function getPage(slug: string): Promise<Page> {
+  const res = await fetchApi<ApiResponse<Page>>(`/pages/${encodeURIComponent(slug)}`, { useCache: true });
+  return res.data;
+}
+
+export async function getMenus(): Promise<Menu[]> {
+  const res = await fetchApi<ApiResponse<Menu[]>>("/menus", { useCache: true });
+  return res.data;
 }

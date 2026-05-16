@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { Product } from "@/types";
+import { toast } from "sonner";
 
 export interface CartItem {
   product: Product;
@@ -11,6 +12,8 @@ interface CartState {
   items: CartItem[];
   isDrawerOpen: boolean;
   isOrderModalOpen: boolean;
+  isMobileMenuOpen: boolean;
+  mobileActiveTab: "categories" | "menu";
   addItem: (product: Product, quantity?: number) => void;
   removeItem: (productId: string) => void;
   updateQuantity: (productId: string, quantity: number) => void;
@@ -18,6 +21,8 @@ interface CartState {
   toggleDrawer: () => void;
   setDrawerOpen: (isOpen: boolean) => void;
   setOrderModalOpen: (isOpen: boolean) => void;
+  setMobileMenuOpen: (isOpen: boolean) => void;
+  setMobileActiveTab: (tab: "categories" | "menu") => void;
   getTotalItems: () => void;
   getTotalPrice: () => number;
 }
@@ -28,11 +33,18 @@ export const useCartStore = create<CartState>()(
       items: [],
       isDrawerOpen: false,
       isOrderModalOpen: false,
+      isMobileMenuOpen: false,
+      mobileActiveTab: "categories",
       addItem: (product, quantity = 1) => {
         set((state) => {
           const existingItem = state.items.find(
             (item) => item.product.id === product.id
           );
+          
+          toast.success(`${product.name} added to cart`, {
+            description: quantity > 1 ? `${quantity} items added` : undefined,
+          });
+
           if (existingItem) {
             return {
               items: state.items.map((item) =>
@@ -40,12 +52,12 @@ export const useCartStore = create<CartState>()(
                   ? { ...item, quantity: item.quantity + quantity }
                   : item
               ),
-              isDrawerOpen: true, // open drawer on add
+              isDrawerOpen: false, // open drawer on add
             };
           }
           return {
             items: [...state.items, { product, quantity }],
-            isDrawerOpen: true,
+            isDrawerOpen: false,
           };
         });
       },
@@ -65,6 +77,8 @@ export const useCartStore = create<CartState>()(
       toggleDrawer: () => set((state) => ({ isDrawerOpen: !state.isDrawerOpen })),
       setDrawerOpen: (isOpen) => set({ isDrawerOpen: isOpen }),
       setOrderModalOpen: (isOpen) => set({ isOrderModalOpen: isOpen }),
+      setMobileMenuOpen: (isOpen) => set({ isMobileMenuOpen: isOpen }),
+      setMobileActiveTab: (tab) => set({ mobileActiveTab: tab }),
       getTotalItems: () => {
         // Just calculating on the fly is usually fine, but if we need a getter
         return; // Actually, state.items.length or reduce
@@ -78,7 +92,7 @@ export const useCartStore = create<CartState>()(
       },
     }),
     {
-      name: "stylon-cart",
+      name: "shop-cart",
       partialize: (state) => ({ items: state.items }),
     }
   )

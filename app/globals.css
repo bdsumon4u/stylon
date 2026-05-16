@@ -2,12 +2,12 @@
 
 @theme {
   --font-sans: var(--font-inter);
-  --color-primary: #9c27ff;
-  --color-primary-dark: #7a1dcc;
   --color-black: #000000;
   --color-dark-gray: #1f1f1f;
+  --color-primary: var(--color-dark-gray);
+  --color-primary-dark: var(--color-black);
   --color-light-bg: #f5f5f5;
-  --color-border-color: #ececec;
+  --color-border-color: #d5d5d5;
   --color-muted-text: #666666;
   --color-sale-red: #ff4b5c;
   --color-discount-green: #16a34a;

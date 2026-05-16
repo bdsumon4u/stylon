@@ -17,15 +17,18 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
     setOrderModalOpen(true);
   };
 
-  // Generate deterministic fake rating and sold count since API doesn't provide them
+  // Use real rating and review count from the product object
+  const rating = product.averageRating > 0 ? product.averageRating.toFixed(1) : "5.0";
+  const reviewsCount = product.reviewsCount || 0;
+  
+  // Deterministic fake sold count as requested
   const numericId = parseInt(product.id) || 1234;
-  const rating = ((numericId % 20) / 10 + 3.0).toFixed(1); // 3.0 to 4.9
-  const soldCount = (numericId % 500) + 100; // 100 to 599
+  const soldCount = (numericId % 500) + 100;
 
   return (
     <div className="bg-[#f4f7fb] rounded-lg overflow-hidden flex flex-col group h-full transition-all hover:shadow-md">
       {/* Image Container */}
-      <Link href={`/products/${product.slug}`} prefetch={true} className="relative block aspect-square bg-white overflow-hidden">
+      <Link href={`/shop/${product.slug}`} prefetch={true} className="relative block aspect-square bg-white overflow-hidden">
         <Image
           src={product.image}
           alt={product.name || "Product Image"}
@@ -48,7 +51,7 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-3 h-3 text-[#9ca3af]">
               <path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.006 5.404.434c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.434 2.082-5.006z" clipRule="evenodd" />
             </svg>
-            {rating} / 5
+            {rating} ({reviewsCount})
           </div>
           <div className="text-[#15803d] text-[11px] font-bold">
             {soldCount} Sold
@@ -57,7 +60,7 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
       </Link>
 
       {/* Content */}
-      <Link href={`/products/${product.slug}`} prefetch={true} className="p-3 pb-4 flex flex-col flex-1">
+      <Link href={`/shop/${product.slug}`} prefetch={true} className="p-3 pb-4 flex flex-col flex-1">
         <h3 className="text-gray-900 font-medium text-[14.5px] leading-snug line-clamp-2 h-[40px] group-hover:text-primary transition-colors">
           {product.name}
         </h3>

@@ -5,7 +5,7 @@ import { Home, Grid, ShoppingCart, User, Phone } from "lucide-react";
 import { useCartStore } from "@/store/cart";
 
 export function MobileBottomNav() {
-  const { items, setDrawerOpen } = useCartStore();
+  const { items, setDrawerOpen, setMobileMenuOpen, setMobileActiveTab } = useCartStore();
   const totalItems = items.reduce((acc, item) => acc + item.quantity, 0);
 
   return (
@@ -14,10 +14,16 @@ export function MobileBottomNav() {
         <Home className="w-5 h-5" />
         <span className="text-[10px] font-medium">Home</span>
       </Link>
-      <Link href="/products" className="flex flex-col items-center gap-1 p-2 flex-1 text-black hover:text-primary transition-colors">
+      <button 
+        onClick={() => {
+          setMobileActiveTab("categories");
+          setMobileMenuOpen(true);
+        }}
+        className="flex flex-col items-center gap-1 p-2 flex-1 text-black hover:text-primary transition-colors"
+      >
         <Grid className="w-5 h-5" />
         <span className="text-[10px] font-medium">Categories</span>
-      </Link>
+      </button>
       <button 
         onClick={() => setDrawerOpen(true)}
         className="flex flex-col items-center gap-1 p-2 flex-1 text-black hover:text-primary transition-colors relative"

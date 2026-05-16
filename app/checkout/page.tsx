@@ -11,6 +11,7 @@ import { useRouter } from "next/navigation";
 export default function CheckoutPage() {
   const router = useRouter();
   const { items, updateQuantity, removeItem, getTotalPrice, clearCart } = useCartStore();
+  const [mounted, setMounted] = useState(false);
   const [shippingOption, setShippingOption] = useState("inside");
   const [shippingRates, setShippingRates] = useState({ inside: 80, outside: 150 });
   
@@ -24,6 +25,7 @@ export default function CheckoutPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
+    setMounted(true);
     getSettings().then(settings => {
       if (settings?.delivery_charge) {
         setShippingRates({
@@ -68,6 +70,10 @@ export default function CheckoutPage() {
       setSubmitting(false);
     }
   };
+
+  if (!mounted) {
+    return null;
+  }
 
   if (success) {
     return (
@@ -165,52 +171,42 @@ export default function CheckoutPage() {
             </div>
             
             {/* Action Bar */}
-            {items.length > 0 && (
+            {items.length > 0 && false && (
               <div className="p-4 border-t border-border-color flex justify-center">
-                <Link href="/products" className="text-sale-red border border-sale-red px-6 py-2 rounded text-sm hover:bg-sale-red hover:text-white transition-colors">
+                <Link href="/shop" className="text-sale-red border border-sale-red px-6 py-2 rounded text-sm hover:bg-sale-red hover:text-white transition-colors">
                   Add more products to get free shipping
                 </Link>
               </div>
             )}
           </div>
 
-          <Link href="/products" className="inline-flex text-primary text-sm items-center gap-1 hover:underline">
+          <Link href="/shop" className="inline-flex text-primary text-sm items-center gap-1 hover:underline">
             ← Continue Shopping
           </Link>
 
           {/* Coupon & Totals (Desktop Left Side Bottom) */}
           <div className="flex flex-col md:flex-row justify-between items-start gap-6 mt-6">
             <div className="flex w-full md:w-auto">
-              <input 
-                type="text" 
-                placeholder="Apply Coupon..." 
-                className="border border-border-color rounded-l px-4 py-2 outline-none focus:border-primary text-sm flex-1 md:w-[200px]"
-              />
-              <button className="bg-black text-white px-6 py-2 rounded-r text-sm font-medium">
-                Apply
-              </button>
+              <template>
+                <input
+                  type="text"
+                  placeholder="Apply Coupon..."
+                  className="border border-border-color rounded-l px-4 py-2 outline-none focus:border-primary text-sm flex-1 md:w-[200px]"
+                />
+                <button className="bg-black text-white px-6 py-2 rounded-r text-sm font-medium">
+                  Apply
+                </button>
+              </template>
             </div>
 
             <div className="w-full md:w-[300px] space-y-3 text-sm border-t md:border-none border-border-color pt-4 md:pt-0">
               <div className="flex justify-between">
-                <span className="font-medium text-black">Regular Price -</span>
-                <span>{totalPrice} Tk</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="font-medium text-black">Discount -</span>
-                <span>0 Tk</span>
-              </div>
-              <div className="flex justify-between font-bold">
-                <span className="text-black">Offer Price -</span>
+                <span className="font-medium text-black">Product Price -</span>
                 <span>{totalPrice} Tk</span>
               </div>
               <div className="flex justify-between">
                 <span className="font-medium text-black">Delivery Charge -</span>
                 <span>{shippingCost} Tk</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="font-medium text-black">Coupon Discount -</span>
-                <span>0 Tk</span>
               </div>
               <div className="flex justify-between font-bold text-lg border-t border-border-color pt-3 mt-3">
                 <span className="text-black">Total -</span>
@@ -220,7 +216,7 @@ export default function CheckoutPage() {
           </div>
 
           {/* Note Area */}
-          <div className="mt-8">
+          <div className="mt-8 p-4 shadow-sm">
             <h3 className="font-bold mb-2">প্রয়োজনীয় কোনো তথ্য দিতে এই এখানে লিখুন:</h3>
             <textarea 
               rows={4}
@@ -290,7 +286,7 @@ export default function CheckoutPage() {
                       onChange={() => setShippingOption('inside')}
                       className="w-4 h-4 text-primary accent-primary"
                     />
-                    <span className="text-sm font-medium">Inside Dhaka ({shippingRates.inside} Tk)</span>
+                    <span className="text-sm font-medium">ঢাকা সিটির ভেতরে - {shippingRates.inside} টাকা</span>
                   </label>
                   <label className={`flex items-center gap-3 border rounded p-3 cursor-pointer ${shippingOption === 'outside' ? 'border-primary shadow-sm bg-white' : 'border-border-color'}`}>
                     <input 
@@ -300,7 +296,7 @@ export default function CheckoutPage() {
                       onChange={() => setShippingOption('outside')}
                       className="w-4 h-4 text-primary accent-primary"
                     />
-                    <span className="text-sm font-medium">Outside Dhaka ({shippingRates.outside} Tk)</span>
+                    <span className="text-sm font-medium">ঢাকা সিটির বাহিরে - {shippingRates.outside} টাকা</span>
                   </label>
                 </div>
               </div>

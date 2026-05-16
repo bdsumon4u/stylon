@@ -18,21 +18,18 @@ export default function Home() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [slides, setSlides] = useState<Slide[]>([]);
   const [homeSections, setHomeSections] = useState<{ category: Category; products: Product[] }[]>([]);
-  const [trendingProducts, setTrendingProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchData() {
       try {
-        const [cats, allSlides, trendingRes] = await Promise.all([
+        const [cats, allSlides] = await Promise.all([
           getCategories(),
           getSlides(),
-          getProducts({ per_page: 10 }),
         ]);
         
         setCategories(cats);
         setSlides(allSlides);
-        setTrendingProducts(trendingRes.data);
 
         // Fetch products for each of the top categories to create home sections
         const sectionsData = await Promise.all(
@@ -91,7 +88,7 @@ export default function Home() {
             >
               {slides.map((slide) => (
                 <SwiperSlide key={slide.id}>
-                  <Link href={slide.btn_href || "/products"} className="relative w-full h-full block">
+                  <Link href={slide.btn_href || "/shop"} className="relative w-full h-full block">
                     <div className="hidden md:block w-full h-full relative aspect-[21/7]">
                       <Image src={slide.desktop_image} alt={slide.title || "Hero Slide Desktop"} fill className="object-cover" priority />
                     </div>
@@ -139,7 +136,7 @@ export default function Home() {
           >
             {categories.map((category) => (
               <SwiperSlide key={category.id}>
-                <Link href={`/products?category=${encodeURIComponent(category.slug)}`} className="flex flex-col items-center gap-2 group">
+                <Link href={`/shop?category=${encodeURIComponent(category.slug)}`} className="flex flex-col items-center gap-2 group">
                   <div className="w-20 h-20 md:w-24 md:h-24 rounded-lg bg-white border border-border-color shadow-sm overflow-hidden flex items-center justify-center p-1 group-hover:border-primary transition-colors">
                      <div className="w-full h-full rounded-lg bg-gray-100 relative overflow-hidden">
                        <Image src={category.image} alt={category.name} fill sizes="(max-width: 768px) 64px, 80px" className="object-cover" />
@@ -155,21 +152,6 @@ export default function Home() {
         </section>
       )}
 
-      {/* Trending Products */}
-      {trendingProducts.length > 0 && (
-        <section className="max-w-[1320px] mx-auto px-4 w-full">
-          <div className="mb-6 border-b border-border-color pb-2 relative">
-            <h2 className="text-xl font-bold text-black uppercase tracking-wide">Trending Looks</h2>
-            <div className="absolute bottom-[-1px] left-0 w-20 h-[3px] bg-primary rounded-full"></div>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4 lg:gap-5">
-            {trendingProducts.map((product, idx) => (
-              <ProductCard key={product.id} product={product} priority={idx < 4} />
-            ))}
-          </div>
-        </section>
-      )}
-
       {/* Dynamic Category Sections */}
       {homeSections.map(({ category, products }) => (
         <section key={category.id} className="max-w-[1320px] mx-auto px-4 w-full">
@@ -178,7 +160,7 @@ export default function Home() {
               <h2 className="text-xl font-bold text-black uppercase tracking-wide">{category.name}</h2>
               <div className="absolute bottom-[-1px] left-0 w-20 h-[3px] bg-primary rounded-full"></div>
             </div>
-            <Link href={`/products?category=${encodeURIComponent(category.slug)}`} className="text-sm font-bold text-primary hover:underline transition-all">
+            <Link href={`/shop?category=${encodeURIComponent(category.slug)}`} className="text-sm font-bold text-primary hover:underline transition-all">
               View All
             </Link>
           </div>

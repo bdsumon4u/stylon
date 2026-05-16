@@ -99,7 +99,7 @@ export function OrderModal({ isOpen, onClose }: OrderModalProps) {
       >
         {/* Dark Title Section */}
         <div className="bg-dark-gray text-white p-4 flex justify-between items-center">
-          <h2 className="text-lg font-bold">অর্ডার কনফার্ম করতে আপনার তথ্য দিন</h2>
+          <h2 className="text-lg font-bold">অর্ডার করতে আপনার নাম, মোবাইল নাম্বার, ঠিকানা দিয়ে অর্ডার কনফার্ম বাটনে ক্লিক করুন।</h2>
           <button onClick={onClose} className="text-gray-300 hover:text-white transition-colors p-1">
             <X className="w-5 h-5" />
           </button>
@@ -118,7 +118,7 @@ export function OrderModal({ isOpen, onClose }: OrderModalProps) {
               <label className="block text-sm font-bold mb-1 text-black">নাম <span className="text-red-500">*</span></label>
               <input 
                 type="text" 
-                placeholder="আপনার নাম লিখুন" 
+                placeholder="এখানে নাম লিখুন..." 
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="w-full border border-border-color rounded px-3 py-2 text-sm focus:border-primary outline-none"
@@ -128,7 +128,7 @@ export function OrderModal({ isOpen, onClose }: OrderModalProps) {
               <label className="block text-sm font-bold mb-1 text-black">মোবাইল নাম্বার <span className="text-red-500">*</span></label>
               <input 
                 type="text" 
-                placeholder="01XXXXXXXXX" 
+                placeholder="মোবাইল নম্বর..." 
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 className="w-full border border-border-color rounded px-3 py-2 text-sm focus:border-primary outline-none"
@@ -138,7 +138,7 @@ export function OrderModal({ isOpen, onClose }: OrderModalProps) {
               <label className="block text-sm font-bold mb-1 text-black">ঠিকানা <span className="text-red-500">*</span></label>
               <input 
                 type="text" 
-                placeholder="সম্পূর্ণ ঠিকানা লিখুন" 
+                placeholder="বাসা নং, রোড নং, থানা/উপজেলা, জেলা" 
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
                 className="w-full border border-border-color rounded px-3 py-2 text-sm focus:border-primary outline-none"
@@ -146,7 +146,7 @@ export function OrderModal({ isOpen, onClose }: OrderModalProps) {
             </div>
             
             <div className="pt-2">
-              <label className="block text-sm font-bold mb-2 text-black">ডেলিভারি চার্জ</label>
+              <label className="block text-sm font-bold mb-2 text-black">হোম ডেলিভারি চার্জ</label>
               <div className="space-y-2">
                 <label className={`flex items-center gap-3 border rounded p-2.5 cursor-pointer ${shippingOption === 'inside' ? 'border-primary shadow-sm bg-primary/5' : 'border-border-color'}`}>
                   <input 
@@ -156,7 +156,7 @@ export function OrderModal({ isOpen, onClose }: OrderModalProps) {
                     onChange={() => setShippingOption('inside')}
                     className="w-4 h-4 text-primary accent-primary"
                   />
-                  <span className="text-sm font-medium">Inside Dhaka ({shippingRates.inside} Tk)</span>
+                  <span className="text-sm font-medium">ঢাকা সিটির ভেতরে {shippingRates.inside} টাকা</span>
                 </label>
                 <label className={`flex items-center gap-3 border rounded p-2.5 cursor-pointer ${shippingOption === 'outside' ? 'border-primary shadow-sm bg-primary/5' : 'border-border-color'}`}>
                   <input 
@@ -166,8 +166,27 @@ export function OrderModal({ isOpen, onClose }: OrderModalProps) {
                     onChange={() => setShippingOption('outside')}
                     className="w-4 h-4 text-primary accent-primary"
                   />
-                  <span className="text-sm font-medium">Outside Dhaka ({shippingRates.outside} Tk)</span>
+                  <span className="text-sm font-medium">ঢাকা সিটির বাহিরে {shippingRates.outside} টাকা</span>
                 </label>
+              </div>
+            </div>
+
+            <div className="pt-2 border-t border-[#f5ead7]">
+              <h4 className="text-center font-bold text-primary mb-3">নিরাপদ পেমেন্ট অপশন</h4>
+              <div className="space-y-2">
+                <label className="flex items-center gap-3 border border-primary bg-white rounded p-3 shadow-sm cursor-pointer">
+                  <input
+                    type="radio"
+                    name="payment"
+                    checked
+                    readOnly
+                    className="w-4 h-4 text-primary accent-primary"
+                  />
+                  <span className="text-sm font-medium text-primary">Cash on delivery</span>
+                </label>
+                <div className="bg-[#e5e7eb] p-3 rounded text-sm text-center border border-transparent">
+                  Pay with upon delivery
+                </div>
               </div>
             </div>
           </div>
@@ -222,7 +241,7 @@ export function OrderModal({ isOpen, onClose }: OrderModalProps) {
 
             <div className="border-t border-border-color pt-3 space-y-2 mt-auto">
               <div className="flex justify-between text-sm">
-                <span className="text-muted-text">Subtotal</span>
+                <span className="text-muted-text">Product Price</span>
                 <span className="font-medium text-black">{totalPrice} Tk</span>
               </div>
               <div className="flex justify-between text-sm">

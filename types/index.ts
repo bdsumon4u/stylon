@@ -3,6 +3,7 @@ export interface Product {
   name: string;
   slug: string;
   category: string;
+  categories: Array<{ id: number; name: string; slug: string }>;
   categorySlug?: string;
   brand?: string;
   regularPrice: number;
@@ -15,8 +16,11 @@ export interface Product {
   stockCount: number;
   description?: string;
   shortDescription?: string;
+  deliveryText?: string;
   shippingInside?: number;
   shippingOutside?: number;
+  averageRating: number;
+  reviewsCount: number;
 }
 
 export interface Category {
@@ -25,6 +29,7 @@ export interface Category {
   slug: string;
   image: string;
   productCount: number;
+  children?: Category[];
 }
 
 export interface Slide {
@@ -48,6 +53,27 @@ export interface PaginationMeta {
 export interface PaginatedResponse<T> {
   data: T[];
   pagination: PaginationMeta;
+}
+
+export interface Page {
+  id: number;
+  title: string;
+  slug: string;
+  content: string;
+}
+
+export interface MenuItem {
+  id: number;
+  name: string;
+  href: string;
+  order: number;
+}
+
+export interface Menu {
+  id: number;
+  name: string;
+  slug: string;
+  items: MenuItem[];
 }
 
 export interface ApiResponse<T> {

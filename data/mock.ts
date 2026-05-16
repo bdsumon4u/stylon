@@ -27,6 +27,8 @@ export const mockProducts: Product[] = [
     thumbnails: ["/images/p1.jpg", "/images/p2.jpg"],
     inStock: true,
     stockCount: 10,
+    averageRating: 4.5,
+    reviewsCount: 12,
     description: "Beautiful peach cotton party dress perfect for summer events."
   },
   {
@@ -41,6 +43,8 @@ export const mockProducts: Product[] = [
     image: "/images/p2.jpg",
     inStock: true,
     stockCount: 5,
+    averageRating: 4.5,
+    reviewsCount: 12,
     description: "Elegant olive organza dress."
   },
   {
@@ -55,6 +59,8 @@ export const mockProducts: Product[] = [
     image: "/images/p3.jpg",
     inStock: true,
     stockCount: 15,
+    averageRating: 4.5,
+    reviewsCount: 12,
   },
   {
     id: "p4",
@@ -68,6 +74,8 @@ export const mockProducts: Product[] = [
     image: "/images/p4.jpg",
     inStock: true,
     stockCount: 20,
+    averageRating: 4.5,
+    reviewsCount: 12,
   },
   {
     id: "p5",
@@ -81,6 +89,8 @@ export const mockProducts: Product[] = [
     image: "/images/p5.jpg",
     inStock: true,
     stockCount: 12,
+    averageRating: 4.5,
+    reviewsCount: 12,
   },
   {
     id: "p6",
@@ -94,6 +104,8 @@ export const mockProducts: Product[] = [
     image: "/images/p6.jpg",
     inStock: true,
     stockCount: 8,
+    averageRating: 4.5,
+    reviewsCount: 12,
   },
   {
     id: "p7",
@@ -107,6 +119,8 @@ export const mockProducts: Product[] = [
     image: "/images/p7.jpg",
     inStock: true,
     stockCount: 10,
+    averageRating: 4.5,
+    reviewsCount: 12,
   },
   {
     id: "p8",
@@ -120,6 +134,8 @@ export const mockProducts: Product[] = [
     image: "/images/p8.jpg",
     inStock: true,
     stockCount: 10,
+    averageRating: 4.5,
+    reviewsCount: 12,
   },
   {
     id: "p9",
@@ -133,6 +149,8 @@ export const mockProducts: Product[] = [
     image: "/images/p9.jpg",
     inStock: true,
     stockCount: 10,
+    averageRating: 4.5,
+    reviewsCount: 12,
   },
   {
     id: "p10",
@@ -146,6 +164,8 @@ export const mockProducts: Product[] = [
     image: "/images/p10.jpg",
     inStock: true,
     stockCount: 10,
+    averageRating: 4.5,
+    reviewsCount: 12,
   },
   {
     id: "p11",
@@ -159,6 +179,8 @@ export const mockProducts: Product[] = [
     image: "/images/p11.jpg",
     inStock: true,
     stockCount: 10,
+    averageRating: 4.5,
+    reviewsCount: 12,
   },
   {
     id: "p12",
@@ -172,6 +194,8 @@ export const mockProducts: Product[] = [
     image: "/images/p12.jpg",
     inStock: true,
     stockCount: 10,
+    averageRating: 4.5,
+    reviewsCount: 12,
   },
   {
     id: "p13",
@@ -185,6 +209,8 @@ export const mockProducts: Product[] = [
     image: "/images/p13.jpg",
     inStock: true,
     stockCount: 10,
+    averageRating: 4.5,
+    reviewsCount: 12,
   },
   {
     id: "p14",
@@ -198,6 +224,8 @@ export const mockProducts: Product[] = [
     image: "/images/p14.jpg",
     inStock: true,
     stockCount: 10,
+    averageRating: 4.5,
+    reviewsCount: 12,
   },
   {
     id: "p15",
@@ -211,6 +239,8 @@ export const mockProducts: Product[] = [
     image: "/images/p15.jpg",
     inStock: true,
     stockCount: 10,
+    averageRating: 4.5,
+    reviewsCount: 12,
   },
   {
     id: "p16",
@@ -224,5 +254,7 @@ export const mockProducts: Product[] = [
     image: "/images/p16.jpg",
     inStock: true,
     stockCount: 10,
+    averageRating: 4.5,
+    reviewsCount: 12,
   }
 ];
