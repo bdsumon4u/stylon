@@ -3,7 +3,7 @@ export interface Product {
   name: string;
   slug: string;
   category: string;
-  categories: Array<{ id: number; name: string; slug: string }>;
+  categories?: Array<{ id: number; name: string; slug: string }>;
   categorySlug?: string;
   brand?: string;
   regularPrice: number;

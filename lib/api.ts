@@ -1,4 +1,4 @@
-import { Product, Category, Slide, PaginatedResponse, ApiResponse } from "@/types";
+import { Product, Category, Slide, PaginatedResponse, ApiResponse, Page, Menu } from "@/types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/storefront";
 export const MEDIA_BASE = API_BASE.replace('/api/storefront', '');
