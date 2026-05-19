@@ -53,3 +53,18 @@ body {
 .categories-swiper .swiper-wrapper {
   justify-content: center;
 }
+
+@keyframes border-glow {
+  0%, 100% {
+    border-color: var(--color-border-color);
+    box-shadow: 0 0 0 0 rgba(255, 75, 92, 0);
+  }
+  50% {
+    border-color: var(--color-sale-red);
+    box-shadow: 0 0 8px 2px rgba(255, 75, 92, 0.25);
+  }
+}
+
+.animate-pulse-border {
+  animation: border-glow 1s infinite ease-in-out;
+}

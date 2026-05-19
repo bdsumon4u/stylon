@@ -111,6 +111,18 @@ export async function getSlides(): Promise<Slide[]> {
   return res.data;
 }
 
+// ─── Home Sections ─────────────────────────────────────────────
+
+export async function getHomeSections(): Promise<any[]> {
+  const res = await fetchApi<ApiResponse<any[]>>("/home-sections", { useCache: true });
+  return res.data;
+}
+
+export async function getHomeSectionProducts(sectionId: string | number, page: number = 1): Promise<PaginatedResponse<Product>> {
+  const res = await fetchApi<PaginatedResponse<Product>>(`/home-sections/${sectionId}/products?page=${page}`, { useCache: true });
+  return res;
+}
+
 // ─── Settings ────────────────────────────────────────────────
 
 export async function getSettings(): Promise<Record<string, any>> {

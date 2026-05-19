@@ -8,6 +8,30 @@ import { Trash2, Plus, Minus, Loader2, CheckCircle } from "lucide-react";
 import { getSettings, placeOrder } from "@/lib/api";
 import { useRouter } from "next/navigation";
 
+// Animated Heading Component for Note Area
+const AnimatedHeading = () => {
+  const text = "প্রয়োজনীয় কোনো তথ্য দিতে এই এখানে লিখুন:";
+  const [index, setIndex] = useState(0);
+  const words = text.split(" ");
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setIndex((prev) => (prev + 1) % words.length);
+    }, 350);
+    return () => clearInterval(interval);
+  }, [words.length]);
+
+  return (
+    <h3 className="font-bold mb-2">
+      {words.map((word, i) => (
+        <span key={i} className={i === index ? "text-red-600 transition-colors duration-100" : ""}>
+          {word}{i < words.length - 1 ? " " : ""}
+        </span>
+      ))}
+    </h3>
+  );
+};
+
 export default function CheckoutPage() {
   const router = useRouter();
   const { items, updateQuantity, removeItem, getTotalPrice, clearCart } = useCartStore();
@@ -216,14 +240,14 @@ export default function CheckoutPage() {
           </div>
 
           {/* Note Area */}
-          <div className="mt-8 p-4 shadow-sm">
-            <h3 className="font-bold mb-2">প্রয়োজনীয় কোনো তথ্য দিতে এই এখানে লিখুন:</h3>
+          <div className="mt-8 p-4 shadow-sm bg-[#fffdf7]">
+            <AnimatedHeading />
             <textarea 
               rows={4}
               value={note}
               onChange={(e) => setNote(e.target.value)}
-              placeholder="দয়া করে আপনার অর্ডারের জন্য যে কোনও বিশেষ নির্দেশিকা বা পছন্দ দিন এখানে বলতে পারেন।"
-              className="w-full border border-border-color rounded p-3 text-sm focus:border-primary outline-none resize-none"
+              placeholder="দয়া করে আপনার অর্ডারের জন্য যে কোন বিশেষ নির্দেশিকা বা পছন্দের সাইজ/কালার এখানে বলতে পারেন।"
+              className="w-full border border-border-color rounded p-3 text-sm focus:border-primary outline-none resize-none animate-pulse-border"
             ></textarea>
           </div>
         </div>

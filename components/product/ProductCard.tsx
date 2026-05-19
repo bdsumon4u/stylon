@@ -28,7 +28,7 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
   return (
     <div className="bg-[#f4f7fb] rounded-lg overflow-hidden flex flex-col group h-full transition-all hover:shadow-md">
       {/* Image Container */}
-      <Link href={`/shop/${product.slug}`} prefetch={true} className="relative block aspect-square bg-white overflow-hidden">
+      <Link href={`/products/${product.slug}`} prefetch={true} className="relative block aspect-square bg-white overflow-hidden">
         <Image
           src={product.image}
           alt={product.name || "Product Image"}
@@ -60,7 +60,7 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
       </Link>
 
       {/* Content */}
-      <Link href={`/shop/${product.slug}`} prefetch={true} className="p-3 pb-4 flex flex-col flex-1">
+      <Link href={`/products/${product.slug}`} prefetch={true} className="p-3 pb-4 flex flex-col flex-1">
         <h3 className="text-gray-900 font-medium text-[14.5px] leading-snug line-clamp-2 h-[40px] group-hover:text-primary transition-colors">
           {product.name}
         </h3>

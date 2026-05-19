@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ProductCard } from "@/components/product/ProductCard";
-import { getCategories, getProducts, getSlides } from "@/lib/api";
+import { HomeSectionProducts } from "@/components/home/HomeSectionProducts";
+import { getCategories, getSlides, getHomeSections } from "@/lib/api";
 import { Product, Category, Slide } from "@/types";
 
 // Swiper
@@ -17,29 +18,21 @@ import 'swiper/css/pagination';
 export default function Home() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [slides, setSlides] = useState<Slide[]>([]);
-  const [homeSections, setHomeSections] = useState<{ category: Category; products: Product[] }[]>([]);
+  const [homeSections, setHomeSections] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchData() {
       try {
-        const [cats, allSlides] = await Promise.all([
+        const [cats, allSlides, sectionsData] = await Promise.all([
           getCategories(),
           getSlides(),
+          getHomeSections(),
         ]);
         
         setCategories(cats);
         setSlides(allSlides);
-
-        // Fetch products for each of the top categories to create home sections
-        const sectionsData = await Promise.all(
-          cats.slice(0, 5).map(async (cat) => {
-            const res = await getProducts({ category: cat.slug, per_page: 5 });
-            return { category: cat, products: res.data };
-          })
-        );
-        
-        setHomeSections(sectionsData.filter(s => s.products.length > 0));
+        setHomeSections(sectionsData);
       } catch (error) {
         console.error("Failed to fetch home data:", error);
       } finally {
@@ -152,23 +145,17 @@ export default function Home() {
         </section>
       )}
 
-      {/* Dynamic Category Sections */}
-      {homeSections.map(({ category, products }) => (
-        <section key={category.id} className="max-w-[1320px] mx-auto px-4 w-full">
+      {/* Dynamic Home Sections */}
+      {homeSections.map((section) => (
+        <section key={section.id} className="max-w-[1320px] mx-auto px-4 w-full">
           <div className="mb-6 border-b border-border-color pb-2 relative flex justify-between items-end">
             <div>
-              <h2 className="text-xl font-bold text-black uppercase tracking-wide">{category.name}</h2>
+              <h2 className="text-xl font-bold text-black uppercase tracking-wide">{section.title}</h2>
               <div className="absolute bottom-[-1px] left-0 w-20 h-[3px] bg-primary rounded-full"></div>
             </div>
-            <Link href={`/shop?category=${encodeURIComponent(category.slug)}`} className="text-sm font-bold text-primary hover:underline transition-all">
-              View All
-            </Link>
+            {/* Optional: Add View All link if there's a related slug in the future */}
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4 lg:gap-5">
-            {products.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
+          <HomeSectionProducts sectionId={section.id} />
         </section>
       ))}
 

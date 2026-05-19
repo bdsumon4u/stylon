@@ -2,6 +2,14 @@ import type { NextConfig } from "next";
 
 
 const nextConfig: NextConfig = {
+  async rewrites() {
+    return [
+      {
+        source: "/products/:slug",
+        destination: "/shop/:slug",
+      },
+    ];
+  },
   images: {
     // Disable image optimization to avoid issues with local/private IP backend images
     unoptimized: true,

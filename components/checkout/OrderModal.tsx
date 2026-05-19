@@ -11,12 +11,37 @@ interface OrderModalProps {
   onClose: () => void;
 }
 
+// Animated Heading Component for Note Area
+const AnimatedHeading = () => {
+  const text = "প্রয়োজনীয় কোনো তথ্য দিতে এই এখানে লিখুন:";
+  const [index, setIndex] = useState(0);
+  const words = text.split(" ");
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setIndex((prev) => (prev + 1) % words.length);
+    }, 350);
+    return () => clearInterval(interval);
+  }, [words.length]);
+
+  return (
+    <label className="block text-sm font-bold mb-1 text-black">
+      {words.map((word, i) => (
+        <span key={i} className={i === index ? "text-red-600 transition-colors duration-100" : ""}>
+          {word}{i < words.length - 1 ? " " : ""}
+        </span>
+      ))}
+    </label>
+  );
+};
+
 export function OrderModal({ isOpen, onClose }: OrderModalProps) {
   const { items, updateQuantity, removeItem, getTotalPrice, clearCart } = useCartStore();
   const [shippingOption, setShippingOption] = useState("inside");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
+  const [note, setNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState<{ orderId: number; total: number } | null>(null);
   const [error, setError] = useState("");
@@ -56,6 +81,7 @@ export function OrderModal({ isOpen, onClose }: OrderModalProps) {
         name: name.trim(),
         phone: phone.trim(),
         address: address.trim(),
+        note: note.trim(),
         shipping: shippingOption === "inside" ? "Inside Dhaka" : "Outside Dhaka",
         items: items.map(item => ({
           id: item.product.id,
@@ -144,8 +170,18 @@ export function OrderModal({ isOpen, onClose }: OrderModalProps) {
                 className="w-full border border-border-color rounded px-3 py-2 text-sm focus:border-primary outline-none"
               />
             </div>
+            <div>
+              <AnimatedHeading />
+              <textarea 
+                rows={3}
+                placeholder="দয়া করে আপনার অর্ডারের জন্য যে কোন বিশেষ নির্দেশিকা বা পছন্দের সাইজ/কালার এখানে বলতে পারেন।"
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                className="w-full border border-border-color rounded px-3 py-2 text-sm focus:border-primary outline-none resize-none animate-pulse-border"
+              />
+            </div>
             
-            <div className="pt-2">
+            <div>
               <label className="block text-sm font-bold mb-2 text-black">হোম ডেলিভারি চার্জ</label>
               <div className="space-y-2">
                 <label className={`flex items-center gap-3 border rounded p-2.5 cursor-pointer ${shippingOption === 'inside' ? 'border-primary shadow-sm bg-primary/5' : 'border-border-color'}`}>
@@ -170,32 +206,13 @@ export function OrderModal({ isOpen, onClose }: OrderModalProps) {
                 </label>
               </div>
             </div>
-
-            <div className="pt-2 border-t border-[#f5ead7]">
-              <h4 className="text-center font-bold text-primary mb-3">নিরাপদ পেমেন্ট অপশন</h4>
-              <div className="space-y-2">
-                <label className="flex items-center gap-3 border border-primary bg-white rounded p-3 shadow-sm cursor-pointer">
-                  <input
-                    type="radio"
-                    name="payment"
-                    checked
-                    readOnly
-                    className="w-4 h-4 text-primary accent-primary"
-                  />
-                  <span className="text-sm font-medium text-primary">Cash on delivery</span>
-                </label>
-                <div className="bg-[#e5e7eb] p-3 rounded text-sm text-center border border-transparent">
-                  Pay with upon delivery
-                </div>
-              </div>
-            </div>
           </div>
 
           {/* Right Column - Cart Preview */}
           <div className="bg-gray-50 rounded border border-border-color p-4 flex flex-col h-full">
             <h3 className="font-bold text-black mb-4 pb-2 border-b border-border-color">অর্ডারের সারসংক্ষেপ</h3>
             
-            <div className="flex-1 overflow-y-auto mb-4 space-y-3 custom-scrollbar pr-1 max-h-[250px]">
+            <div className="flex-1 overflow-y-auto overflow-x-hidden mb-4 space-y-3 custom-scrollbar pr-1 max-h-[180px]">
               {items.map((item) => (
                 <div key={item.product.id} className="flex gap-3 bg-white p-2 rounded border border-border-color relative">
                   <button 
@@ -207,7 +224,7 @@ export function OrderModal({ isOpen, onClose }: OrderModalProps) {
                   <div className="w-14 h-16 bg-gray-100 rounded relative overflow-hidden shrink-0 border border-border-color">
                     <Image src={item.product.image} alt={item.product.name || "Cart Item"} fill sizes="56px" className="object-cover" />
                   </div>
-                  <div className="flex-1 flex flex-col justify-between">
+                  <div className="flex-1 flex flex-col justify-between min-w-0">
                     <h4 className="text-[12px] font-medium text-black line-clamp-1 leading-tight">{item.product.name}</h4>
                     <div className="flex items-center justify-between mt-1">
                       <div className="flex items-center border border-border-color rounded bg-gray-50">
@@ -237,6 +254,26 @@ export function OrderModal({ isOpen, onClose }: OrderModalProps) {
               {items.length === 0 && (
                 <div className="text-center text-muted-text py-4 text-sm">Cart is empty</div>
               )}
+            </div>
+
+            {/* Payment Options */}
+            <div className="pt-2 border-t border-[#f5ead7] mb-4">
+              <h4 className="text-center font-bold text-primary mb-3">নিরাপদ পেমেন্ট অপশন</h4>
+              <div className="space-y-2">
+                <label className="flex items-center gap-3 border border-primary bg-white rounded p-3 shadow-sm cursor-pointer">
+                  <input
+                    type="radio"
+                    name="payment"
+                    checked
+                    readOnly
+                    className="w-4 h-4 text-primary accent-primary"
+                  />
+                  <span className="text-sm font-medium text-primary">Cash on delivery</span>
+                </label>
+                <div className="bg-[#e5e7eb] p-3 rounded text-sm text-center border border-transparent">
+                  Pay with upon delivery
+                </div>
+              </div>
             </div>
 
             <div className="border-t border-border-color pt-3 space-y-2 mt-auto">
