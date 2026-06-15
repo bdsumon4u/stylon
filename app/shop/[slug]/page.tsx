@@ -264,11 +264,11 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ slug:
           <div className="flex items-center gap-4 mb-4">
             {product.salePrice && product.salePrice < product.regularPrice ? (
               <>
-                <span className="text-sale-red line-through text-lg font-medium">{product.regularPrice} Tk</span>
-                <span className="text-black font-bold text-3xl">{product.salePrice} Tk</span>
+                <span className="text-sale-red line-through text-lg md:text-md font-medium">{product.regularPrice} Tk</span>
+                <span className="text-black font-bold text-2xl md:text-xl">{product.salePrice} Tk</span>
               </>
             ) : (
-              <span className="text-black font-bold text-3xl">{product.regularPrice} Tk</span>
+              <span className="text-black font-bold text-2xl md:text-xl">{product.regularPrice} Tk</span>
             )}
             {product.discountPercentage && product.discountPercentage > 0 && (
               <span className="bg-black text-white px-3 py-1 rounded-full text-[11px] font-bold ml-2 shadow-md">

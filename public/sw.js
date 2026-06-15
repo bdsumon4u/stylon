@@ -1,5 +1,6 @@
 const CACHE_NAME = 'stylon-assets-cache-v1';
 const IMAGE_CACHE_NAME = 'stylon-images-cache-v1';
+const PAGES_CACHE_NAME = 'stylon-pages-cache-v1';
 
 // Assets to cache immediately on install
 const PRECACHE_ASSETS = [
@@ -20,7 +21,11 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME && cacheName !== IMAGE_CACHE_NAME) {
+          if (
+            cacheName !== CACHE_NAME && 
+            cacheName !== IMAGE_CACHE_NAME && 
+            cacheName !== PAGES_CACHE_NAME
+          ) {
             return caches.delete(cacheName);
           }
         })
@@ -33,37 +38,55 @@ self.addEventListener('fetch', (event) => {
   const request = event.request;
   const url = new URL(request.url);
 
-  // We only cache GET requests
-  if (request.method !== 'GET') {
+  // We only cache GET requests and HTTP/HTTPS schemes (ignoring chrome-extension, etc.)
+  if (request.method !== 'GET' || !url.protocol.startsWith('http')) {
     return;
   }
 
-  // Check if it's an image request
+  // Exclude admin pages, livewire, filament, etc.
+  const isExcluded = 
+    url.pathname.includes('/admin') || 
+    url.pathname.includes('/filament') || 
+    url.pathname.includes('/livewire');
+
+  if (isExcluded) {
+    return;
+  }
+
+  // 1. Check if it's an image request
   const isImage = 
     request.destination === 'image' ||
     url.pathname.match(/\.(png|jpe?g|gif|svg|webp|ico)/i) ||
-    url.host.includes('kroymela.com') && url.pathname.includes('/storage/');
+    url.pathname.includes('/storage/');
 
   if (isImage) {
     event.respondWith(
       caches.open(IMAGE_CACHE_NAME).then((cache) => {
         return cache.match(request).then((cachedResponse) => {
-          const fetchPromise = fetch(request.clone()).then((networkResponse) => {
-            // Cache valid HTTP 200 or opaque (status 0) responses
+          if (cachedResponse) {
+            // Update cache in the background
+            fetch(request.clone()).then((networkResponse) => {
+              if (networkResponse.status === 200 || networkResponse.status === 0) {
+                cache.put(request, networkResponse);
+              }
+            }).catch(() => {});
+            return cachedResponse;
+          }
+
+          // Fetch from network directly
+          return fetch(request.clone()).then((networkResponse) => {
             if (networkResponse.status === 200 || networkResponse.status === 0) {
               cache.put(request, networkResponse.clone());
             }
             return networkResponse;
-          }).catch(() => {});
-          
-          return cachedResponse || fetchPromise;
+          });
         });
       })
     );
     return;
   }
 
-  // Stale-while-revalidate for fonts, CSS, JS
+  // 2. Stale-while-revalidate for fonts, CSS, JS
   const isStaticAsset = 
     request.destination === 'font' ||
     request.destination === 'style' ||
@@ -74,13 +97,57 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       caches.open(CACHE_NAME).then((cache) => {
         return cache.match(request).then((cachedResponse) => {
-          const fetchPromise = fetch(request).then((networkResponse) => {
+          if (cachedResponse) {
+            fetch(request.clone()).then((networkResponse) => {
+              if (networkResponse.status === 200) {
+                cache.put(request, networkResponse);
+              }
+            }).catch(() => {});
+            return cachedResponse;
+          }
+
+          return fetch(request.clone()).then((networkResponse) => {
             if (networkResponse.status === 200) {
               cache.put(request, networkResponse.clone());
             }
             return networkResponse;
-          }).catch(() => {});
-          return cachedResponse || fetchPromise;
+          });
+        });
+      })
+    );
+    return;
+  }
+
+  // 3. Stale-while-revalidate for Pages & API Data (Offline-First)
+  const isPageOrData = 
+    request.mode === 'navigate' ||
+    url.pathname.startsWith('/_next/data/') ||
+    request.headers.get('rsc') === '1' ||
+    url.pathname.includes('/api/storefront/') ||
+    url.pathname.startsWith('/products/') ||
+    url.pathname.startsWith('/shop/');
+
+  if (isPageOrData) {
+    event.respondWith(
+      caches.open(PAGES_CACHE_NAME).then((cache) => {
+        return cache.match(request).then((cachedResponse) => {
+          if (cachedResponse) {
+            fetch(request.clone()).then((networkResponse) => {
+              if (networkResponse.status === 200) {
+                cache.put(request, networkResponse);
+              }
+            }).catch(() => {});
+            return cachedResponse;
+          }
+
+          return fetch(request.clone()).then((networkResponse) => {
+            if (networkResponse.status === 200) {
+              cache.put(request, networkResponse.clone());
+            }
+            return networkResponse;
+          }).catch(() => {
+            return caches.match('/');
+          });
         });
       })
     );
