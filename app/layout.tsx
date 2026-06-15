@@ -9,43 +9,37 @@ import { FloatingWidgets } from "@/components/layout/FloatingWidgets";
 import { CartDrawer } from "@/components/cart/CartDrawer";
 import { OrderModalGlobal } from "@/components/checkout/OrderModalGlobal";
 import { getSettings, getMediaUrl } from "@/lib/api";
+import { Toaster } from "sonner";
 
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
+  display: "swap",
 });
 
 export async function generateMetadata(): Promise<Metadata> {
   const defaultTitle = "Online Fashion Shop";
   const defaultDesc = "Quality fashion and apparel.";
+  let settings: any = null;
   try {
-    const settings = await getSettings();
-    const faviconPath = settings?.logo?.favicon || settings?.logo?.desktop;
-    const faviconUrl = faviconPath ? getMediaUrl(faviconPath) : "/favicon.ico";
-    
-    return {
-      title: settings?.company?.name || defaultTitle,
-      description: settings?.scroll_text || defaultDesc,
-      icons: {
-        icon: [
-          { url: faviconUrl },
-        ],
-        shortcut: [faviconUrl],
-        apple: [faviconUrl],
-      },
-    };
-  } catch (error) {
-    return {
-      title: defaultTitle,
-      description: defaultDesc,
-      icons: {
-        icon: "/favicon.ico",
-      }
-    };
+    settings = await getSettings();
+  } catch {
+    settings = null;
   }
-}
 
-import { Toaster } from "sonner";
+  const faviconPath = settings?.logo?.favicon || settings?.logo?.desktop;
+  const faviconUrl = faviconPath ? getMediaUrl(faviconPath) : "/favicon.ico";
+
+  return {
+    title: settings?.company?.name || defaultTitle,
+    description: settings?.scroll_text || defaultDesc,
+    icons: {
+      icon: [faviconUrl],
+      shortcut: [faviconUrl],
+      apple: [faviconUrl],
+    },
+  };
+}
 
 export default async function RootLayout({
   children,
@@ -60,8 +54,45 @@ export default async function RootLayout({
     console.error("Failed to fetch settings on server:", error);
   }
 
+  // Preload the LCP logo + warm up the media host.
+  const desktopLogo = settings?.logo?.desktop ? getMediaUrl(settings.logo.desktop) : null;
+  const mobileLogo  = settings?.logo?.mobile  ? getMediaUrl(settings.logo.mobile)  : null;
+  const mediaOrigin = (() => {
+    try {
+      return desktopLogo ? new URL(desktopLogo).origin : null;
+    } catch {
+      return null;
+    }
+  })();
+
   return (
     <html lang="en" className={`${inter.variable} h-full antialiased`} suppressHydrationWarning>
+      <head>
+        {/* Warm up the connection to the media host (saves DNS + TLS time on first image). */}
+        {mediaOrigin && (
+          <>
+            <link rel="preconnect" href={mediaOrigin} crossOrigin="" />
+            <link rel="dns-prefetch" href={mediaOrigin} />
+          </>
+        )}
+        {/* Preload the LCP logo so the browser starts fetching before React mounts. */}
+        {desktopLogo && (
+          <link
+            rel="preload"
+            as="image"
+            href={desktopLogo}
+            fetchPriority="high"
+          />
+        )}
+        {mobileLogo && mobileLogo !== desktopLogo && (
+          <link
+            rel="preload"
+            as="image"
+            href={mobileLogo}
+            fetchPriority="high"
+          />
+        )}
+      </head>
       <body className="min-h-full flex flex-col font-sans bg-light-bg text-black pb-16 lg:pb-0" suppressHydrationWarning>
         <Toaster position="top-right" richColors closeButton />
         <Header initialSettings={settings} />
@@ -71,24 +102,20 @@ export default async function RootLayout({
         <MobileBottomNav />
         <CartDrawer />
         <OrderModalGlobal />
-        
-        {/* Service Worker Registration */}
+
+        {/* Service Worker Registration — deferred to window load so it never blocks first paint. */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
               if ('serviceWorker' in navigator) {
                 window.addEventListener('load', function() {
                   navigator.serviceWorker.register('/sw.js').then(
-                    function(reg) {
-                      console.log('SW registered successfully with scope:', reg.scope);
-                    },
-                    function(err) {
-                      console.log('SW registration failed:', err);
-                    }
+                    function(reg) { console.log('SW registered:', reg.scope); },
+                    function(err) { console.log('SW registration failed:', err); }
                   );
                 });
               }
-            `
+            `,
           }}
         />
       </body>

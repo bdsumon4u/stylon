@@ -8,8 +8,10 @@ import { HomeSectionProducts } from "@/components/home/HomeSectionProducts";
 import { getCategories, getSlides, getHomeSections } from "@/lib/api";
 import { Product, Category, Slide } from "@/types";
 
-// Swiper
-import { Swiper, SwiperSlide } from 'swiper/react';
+// Swiper — loaded lazily so it doesn't block the initial JS bundle.
+import dynamic from 'next/dynamic';
+const Swiper = dynamic(() => import('swiper/react').then(m => m.Swiper), { ssr: false });
+const SwiperSlide = dynamic(() => import('swiper/react').then(m => m.SwiperSlide), { ssr: false });
 import { Navigation, Pagination, Autoplay, Mousewheel, Keyboard } from 'swiper/modules';
 import 'swiper/css';
 import 'swiper/css/navigation';
@@ -83,10 +85,10 @@ export default function Home() {
                 <SwiperSlide key={slide.id}>
                   <Link href={slide.btn_href || "/shop"} className="relative w-full h-full block">
                     <div className="hidden md:block w-full h-full relative aspect-[21/7]">
-                      <Image src={slide.desktop_image} alt={slide.title || "Hero Slide Desktop"} fill className="object-cover" priority />
+                      <Image src={slide.desktop_image} alt={slide.title || "Hero Slide Desktop"} fill sizes="100vw" quality={80} className="object-cover" priority />
                     </div>
                     <div className="md:hidden w-full h-full relative aspect-[21/9]">
-                      <Image src={slide.mobile_image} alt={slide.title || "Hero Slide Mobile"} fill className="object-cover" priority />
+                      <Image src={slide.mobile_image} alt={slide.title || "Hero Slide Mobile"} fill sizes="100vw" quality={80} className="object-cover" priority />
                     </div>
                     {(slide.title || slide.text) && (
                       <div className="absolute inset-0 bg-black/10 flex items-center px-8 md:px-20">

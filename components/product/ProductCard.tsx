@@ -33,9 +33,10 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
           src={product.image}
           alt={product.name || "Product Image"}
           fill
-          className="object-cover group-hover:scale-105 transition-transform duration-500"
           sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
+          quality={75}
           priority={priority}
+          className="object-cover group-hover:scale-105 transition-transform duration-500"
         />
         
         {/* Discount Badge */}

@@ -84,6 +84,8 @@ export function Header({ initialSettings }: { initialSettings?: any }) {
                     src={getMediaUrl(settings.logo.desktop)}
                     alt={settings?.company?.name || "Logo"}
                     fill
+                    sizes="(max-width: 768px) 128px, 160px"
+                    quality={90}
                     loading="eager"
                     priority
                     className="object-contain hidden md:block"
@@ -93,6 +95,8 @@ export function Header({ initialSettings }: { initialSettings?: any }) {
                     src={getMediaUrl(settings.logo.mobile || settings.logo.desktop)}
                     alt={settings?.company?.name || "Logo"}
                     fill
+                    sizes="128px"
+                    quality={90}
                     loading="eager"
                     priority
                     className="object-contain md:hidden"

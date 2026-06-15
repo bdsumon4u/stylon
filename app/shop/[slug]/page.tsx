@@ -40,8 +40,9 @@ function ZoomableImage({ src, alt, priority }: { src: string, alt: string, prior
         alt={alt}
         fill
         sizes="(max-width: 1024px) 100vw, 540px"
-        className={`object-cover transition-transform ${isZoomed ? "duration-0" : "duration-300"}`}
+        quality={85}
         priority={priority}
+        className={`object-cover transition-transform ${isZoomed ? "duration-0" : "duration-300"}`}
         style={{
           transformOrigin: `${position.x} ${position.y}`,
           transform: isZoomed ? 'scale(2)' : 'scale(1)'
