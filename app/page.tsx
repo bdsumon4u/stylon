@@ -8,10 +8,8 @@ import { HomeSectionProducts } from "@/components/home/HomeSectionProducts";
 import { getCategories, getSlides, getHomeSections } from "@/lib/api";
 import { Product, Category, Slide } from "@/types";
 
-// Swiper — loaded lazily so it doesn't block the initial JS bundle.
-import dynamic from 'next/dynamic';
-const Swiper = dynamic(() => import('swiper/react').then(m => m.Swiper), { ssr: false });
-const SwiperSlide = dynamic(() => import('swiper/react').then(m => m.SwiperSlide), { ssr: false });
+// Swiper
+import { Swiper, SwiperSlide } from 'swiper/react';
 import { Navigation, Pagination, Autoplay, Mousewheel, Keyboard } from 'swiper/modules';
 import 'swiper/css';
 import 'swiper/css/navigation';
