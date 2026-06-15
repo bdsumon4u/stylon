@@ -53,9 +53,11 @@ const nextConfig: NextConfig = {
           },
         ],
       },
-      // Public static assets (icons, fonts, etc.).
+      // Public static assets in /public — ico, images, fonts.
+      // Next.js path-to-regexp does not allow capturing groups, so we match
+      // by directory prefix rather than file extension.
       {
-        source: "/:path*\\.(:ext(ico|png|jpg|jpeg|svg|webp|gif|woff|woff2))",
+        source: "/:file(favicon.ico|robots.txt|sitemap.xml)",
         headers: [
           {
             key: "Cache-Control",
