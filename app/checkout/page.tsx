@@ -4,9 +4,10 @@ import { useCartStore } from "@/store/cart";
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Trash2, Plus, Minus, Loader2, CheckCircle } from "lucide-react";
+import { Trash2, Plus, Minus, Loader2 } from "lucide-react";
 import { getSettings, placeOrder } from "@/lib/api";
 import { useRouter } from "next/navigation";
+import { saveThankYouOrder, buildThankYouOrder } from "@/lib/order-storage";
 
 // Animated Heading Component for Note Area
 const AnimatedHeading = () => {
@@ -45,7 +46,6 @@ export default function CheckoutPage() {
   const [note, setNote] = useState("");
   
   const [submitting, setSubmitting] = useState(false);
-  const [success, setSuccess] = useState<{ orderId: number; total: number } | null>(null);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -86,8 +86,41 @@ export default function CheckoutPage() {
           quantity: item.quantity,
         })),
       });
-      setSuccess({ orderId: res.order.id, total: res.order.total });
+
+      // Build a snapshot of the order for the thank-you page and stash it in
+      // sessionStorage. The page reads ?order=ID and falls back to the stored
+      // blob for the full breakdown (items, address, etc.).
+      const orderItems = items.map(item => {
+        const unitPrice = item.product.salePrice || item.product.regularPrice;
+        return {
+          id: item.product.id,
+          name: item.product.name,
+          image: item.product.image,
+          quantity: item.quantity,
+          price: unitPrice,
+          subtotal: unitPrice * item.quantity,
+        };
+      });
+
+      saveThankYouOrder(
+        buildThankYouOrder({
+          orderId: res.order.id,
+          total: res.order.total,
+          shipping: shippingCost,
+          shippingArea: shippingOption === "inside" ? "Inside Dhaka" : "Outside Dhaka",
+          customer: {
+            name: name.trim(),
+            phone: phone.trim(),
+            address: address.trim(),
+            note: note.trim() || undefined,
+          },
+          items: orderItems,
+          raw: res,
+        })
+      );
+
       clearCart();
+      router.push(`/thank-you?order=${res.order.id}`);
     } catch (err: any) {
       setError(err.message || "অর্ডার প্লেস করতে সমস্যা হয়েছে। আবার চেষ্টা করুন।");
     } finally {
@@ -97,26 +130,6 @@ export default function CheckoutPage() {
 
   if (!mounted) {
     return null;
-  }
-
-  if (success) {
-    return (
-      <div className="max-w-[1440px] mx-auto px-4 lg:px-8 py-16 flex items-center justify-center min-h-[60vh]">
-        <div className="bg-white rounded-lg shadow-xl w-full max-w-[500px] p-8 md:p-12 text-center border border-border-color">
-          <CheckCircle className="w-20 h-20 text-discount-green mx-auto mb-6" />
-          <h2 className="text-3xl font-bold text-black mb-3">অর্ডার সফল হয়েছে!</h2>
-          <p className="text-muted-text text-lg mb-2">Order #{success.orderId}</p>
-          <p className="text-2xl font-bold text-primary mb-8">Total: {success.total} Tk</p>
-          <p className="text-base text-muted-text mb-8">আমরা শীঘ্রই আপনার সাথে যোগাযোগ করবো। ধন্যবাদ আমাদের সাথে থাকার জন্য।</p>
-          <Link
-            href="/"
-            className="inline-block bg-black text-white font-bold text-lg py-4 px-10 rounded-md hover:bg-gray-800 transition-colors"
-          >
-            হোম পেজে ফিরে যান
-          </Link>
-        </div>
-      </div>
-    );
   }
 
   return (

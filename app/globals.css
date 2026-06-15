@@ -68,3 +68,33 @@ body {
 .animate-pulse-border {
   animation: border-glow 1s infinite ease-in-out;
 }
+
+/* Confetti / floating shapes used in the thank-you hero */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-12px) rotate(8deg);
+  }
+}
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+.animate-float-slow {
+  animation: float 9s ease-in-out infinite;
+}
+
+/* Print styles for the thank-you receipt — hides site chrome, keeps the order */
+@media print {
+  body {
+    background: #fff !important;
+  }
+  header, footer, nav, .no-print {
+    display: none !important;
+  }
+  .print-receipt {
+    box-shadow: none !important;
+    border: none !important;
+  }
+}

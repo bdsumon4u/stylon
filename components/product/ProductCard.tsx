@@ -61,13 +61,13 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
 
       {/* Content */}
       <Link href={`/products/${product.slug}`} prefetch={true} className="p-3 pb-4 flex flex-col flex-1">
-        <h3 className="text-gray-900 font-medium text-[14.5px] leading-snug line-clamp-2 h-[40px] group-hover:text-primary transition-colors">
+        <h3 className="text-gray-900 font-medium text-[13px] md:text-[14.5px] leading-snug line-clamp-2 h-[40px] group-hover:text-primary transition-colors">
           {product.name}
         </h3>
         
         {/* SKU (Optional) */}
         {product.id && (
-          <div className="text-[#6b7280] text-[11px] mt-1 font-medium">
+          <div className="text-[#6b7280] text-[11px] mt-1 font-medium hidden md:block">
             Sku: {product.id}
           </div>
         )}
@@ -79,7 +79,7 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
               <>
                 <span className="text-[#ff4b4b] line-through font-medium text-[13px]">{product.regularPrice} Tk</span>
                 <span className="text-black font-bold text-[16px]">{product.salePrice} Tk</span>
-                <span className="bg-black text-white text-[9.5px] font-bold px-1.5 py-0.5 rounded-full ml-auto">
+                <span className="bg-black text-white text-[9.5px] font-bold px-1.5 py-0.5 rounded-full ml-auto hidden md:inline-block">
                   Save {product.regularPrice - product.salePrice}
                 </span>
               </>

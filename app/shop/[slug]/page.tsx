@@ -403,7 +403,7 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ slug:
               isOpen={activeAccordion === "description"}
               onClick={() => setActiveAccordion(activeAccordion === "description" ? "" : "description")}
             >
-              <div className="text-sm text-muted-text" dangerouslySetInnerHTML={{ __html: product.description || "This exclusive dress is designed to give you a premium and elegant look. Made from high-quality materials to ensure maximum comfort and durability." }} />
+              <div className="text-sm text-dark" dangerouslySetInnerHTML={{ __html: product.description || "This exclusive dress is designed to give you a premium and elegant look. Made from high-quality materials to ensure maximum comfort and durability." }} />
             </AccordionItem>
 
             <AccordionItem

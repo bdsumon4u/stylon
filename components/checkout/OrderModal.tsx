@@ -2,9 +2,11 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
-import { X, Minus, Plus, Trash2, CheckCircle, Loader2 } from "lucide-react";
+import { X, Minus, Plus, Trash2, Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useCartStore } from "@/store/cart";
 import { placeOrder, getSettings } from "@/lib/api";
+import { saveThankYouOrder, buildThankYouOrder } from "@/lib/order-storage";
 
 interface OrderModalProps {
   isOpen: boolean;
@@ -36,6 +38,7 @@ const AnimatedHeading = () => {
 };
 
 export function OrderModal({ isOpen, onClose }: OrderModalProps) {
+  const router = useRouter();
   const { items, updateQuantity, removeItem, getTotalPrice, clearCart } = useCartStore();
   const [shippingOption, setShippingOption] = useState("inside");
   const [name, setName] = useState("");
@@ -43,7 +46,6 @@ export function OrderModal({ isOpen, onClose }: OrderModalProps) {
   const [address, setAddress] = useState("");
   const [note, setNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [success, setSuccess] = useState<{ orderId: number; total: number } | null>(null);
   const [error, setError] = useState("");
   const [shippingRates, setShippingRates] = useState({ inside: 80, outside: 150 });
 
@@ -88,8 +90,40 @@ export function OrderModal({ isOpen, onClose }: OrderModalProps) {
           quantity: item.quantity,
         })),
       });
-      setSuccess({ orderId: res.order.id, total: res.order.total });
+
+      // Snapshot order data for the /thank-you page.
+      const orderItems = items.map(item => {
+        const unitPrice = item.product.salePrice || item.product.regularPrice;
+        return {
+          id: item.product.id,
+          name: item.product.name,
+          image: item.product.image,
+          quantity: item.quantity,
+          price: unitPrice,
+          subtotal: unitPrice * item.quantity,
+        };
+      });
+
+      saveThankYouOrder(
+        buildThankYouOrder({
+          orderId: res.order.id,
+          total: res.order.total,
+          shipping: shippingCost,
+          shippingArea: shippingOption === "inside" ? "Inside Dhaka" : "Outside Dhaka",
+          customer: {
+            name: name.trim(),
+            phone: phone.trim(),
+            address: address.trim(),
+            note: note.trim() || undefined,
+          },
+          items: orderItems,
+          raw: res,
+        })
+      );
+
       clearCart();
+      onClose();
+      router.push(`/thank-you?order=${res.order.id}`);
     } catch (err: any) {
       setError(err.message || "অর্ডার প্লেস করতে সমস্যা হয়েছে। আবার চেষ্টা করুন।");
     } finally {
@@ -97,24 +131,11 @@ export function OrderModal({ isOpen, onClose }: OrderModalProps) {
     }
   };
 
-  if (success) {
-    return (
-      <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-6 bg-black/60">
-        <div className="bg-white rounded-lg shadow-2xl w-full max-w-[400px] p-8 text-center">
-          <CheckCircle className="w-16 h-16 text-discount-green mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-black mb-2">অর্ডার সফল হয়েছে!</h2>
-          <p className="text-muted-text mb-1">Order #{success.orderId}</p>
-          <p className="text-lg font-bold text-primary mb-6">Total: {success.total} Tk</p>
-          <p className="text-sm text-muted-text mb-6">আমরা শীঘ্রই আপনার সাথে যোগাযোগ করবো।</p>
-          <button
-            onClick={() => { setSuccess(null); onClose(); }}
-            className="bg-black text-white font-bold py-3 px-8 rounded-md hover:bg-gray-800 transition-colors"
-          >
-            ঠিক আছে
-          </button>
-        </div>
-      </div>
-    );
+  // If we just placed an order, we've already navigated away; bail out so we
+  // don't render the form on top of the new page while React is still
+  // flushing the previous render.
+  if (submitting && items.length === 0) {
+    return null;
   }
 
   return (
@@ -217,7 +238,7 @@ export function OrderModal({ isOpen, onClose }: OrderModalProps) {
                 <div key={item.product.id} className="flex gap-3 bg-white p-2 rounded border border-border-color relative">
                   <button 
                     onClick={() => removeItem(item.product.id)}
-                    className="absolute -top-1.5 -right-1.5 bg-sale-red text-white p-1 rounded-full z-10 hover:bg-red-600 transition-colors shadow-sm"
+                    className="absolute top-0 right-0 bg-sale-red text-white p-1 rounded-full z-10 hover:bg-red-600 transition-colors shadow-sm"
                   >
                     <Trash2 className="w-3 h-3" />
                   </button>

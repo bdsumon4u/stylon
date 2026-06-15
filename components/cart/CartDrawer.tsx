@@ -56,7 +56,7 @@ export function CartDrawer() {
                 {/* Delete Button */}
                 <button 
                   onClick={() => removeItem(item.product.id)}
-                  className="absolute -top-1 -right-1 bg-sale-red text-white p-0.5 rounded-full z-10 hover:bg-red-600 transition-colors"
+                  className="absolute top-0 right-0 bg-sale-red text-white p-0.5 rounded-full z-10 hover:bg-red-600 transition-colors"
                 >
                   <X className="w-3 h-3" />
                 </button>

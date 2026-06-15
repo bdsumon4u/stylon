@@ -218,13 +218,13 @@ export function Header({ initialSettings }: { initialSettings?: any }) {
               )}
             </button>
 
-            {/* Hamburger Menu (Mobile) */}
-            <button 
+            {/* Account Icon (Mobile) */}
+            <a 
               className="lg:hidden p-2 text-dark-gray hover:text-primary transition-colors"
-              onClick={() => setMobileMenuOpen(true)}
+              href={process.env.NEXT_PUBLIC_ADMIN_URL || "/getpass"}
             >
-              <Menu className="w-6 h-6" />
-            </button>
+              <User className="w-6 h-6" />
+            </a>
           </div>
         </div>
         
