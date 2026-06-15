@@ -29,11 +29,13 @@ export function Footer({ initialSettings }: { initialSettings?: any }) {
             <Link href="/" className="flex items-center gap-2 mb-4">
               {settings?.logo ? (
                 <div className="relative w-40 h-12">
-                  <Image 
-                    src={getMediaUrl(settings.logo.desktop || settings.logo.mobile)} 
-                    alt={settings?.company?.name || "Stylon"} 
-                    fill 
-                    className="object-contain object-left" 
+                  <Image
+                    src={getMediaUrl(settings.logo.desktop || settings.logo.mobile)}
+                    alt={settings?.company?.name || "Stylon"}
+                    fill
+                    loading="eager"
+                    priority
+                    className="object-contain object-left"
                   />
                 </div>
               ) : (

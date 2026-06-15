@@ -173,11 +173,13 @@ export function OrderModal({ isOpen, onClose }: OrderModalProps) {
             </div>
             <div>
               <label className="block text-sm font-bold mb-1 text-black">মোবাইল নাম্বার <span className="text-red-500">*</span></label>
-              <input 
-                type="text" 
-                placeholder="মোবাইল নম্বর..." 
+              <input
+                type="tel"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                placeholder="মোবাইল নম্বর..."
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                onChange={(e) => setPhone(e.target.value.replace(/[^0-9]/g, ""))}
                 className="w-full border border-border-color rounded px-3 py-2 text-sm focus:border-primary outline-none"
               />
             </div>

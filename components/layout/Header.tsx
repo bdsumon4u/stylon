@@ -1,6 +1,6 @@
 "use client";
 
-import { Phone, Search, ShoppingCart, User, Menu, ChevronDown, X } from "lucide-react";
+import { Search, ShoppingCart, User, Menu, ChevronDown, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useState, useEffect } from "react";
@@ -40,23 +40,20 @@ export function Header({ initialSettings }: { initialSettings?: any }) {
   return (
     <>
       {/* ... (Top Black Strip remains same) ... */}
-      <div className="bg-black text-white text-xs py-2 px-4 flex justify-between items-center z-50 relative overflow-hidden">
-        <div className="max-w-[1320px] mx-auto w-full flex justify-between items-center px-4">
-          <div className="flex-1 pr-4 whitespace-nowrap">
+      <div className="bg-black text-white text-xs py-2 px-4 flex justify-between items-center z-50 relative">
+        <div className="max-w-[1320px] mx-auto w-full flex justify-between items-center">
+          <div className="flex-1 pr-4 overflow-hidden whitespace-nowrap">
             <div className="animate-marquee inline-block">
               {settings?.scroll_text || ""}
             </div>
           </div>
           <div className="flex items-center gap-4 shrink-0 font-medium">
-            <span className="flex items-center gap-1">
-              <Phone className="w-3 h-3" /> {settings?.company?.phone || ""}
-            </span>
             {settings?.company?.whatsapp && (
-              <a 
-                target="_blank" 
-                rel="noopener noreferrer" 
-                aria-label="WhatsApp" 
-                title="Chat on WhatsApp" 
+              <a
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="WhatsApp"
+                title="Chat on WhatsApp"
                 href={`https://wa.me/${settings.company.whatsapp.replace(/[^0-9]/g, "")}`}
                 className="flex items-center gap-1 hover:text-[#25D366] transition-colors"
               >
@@ -83,18 +80,22 @@ export function Header({ initialSettings }: { initialSettings?: any }) {
               {settings?.logo ? (
                 <div className="relative h-10 w-32 md:w-40">
                   {/* Desktop Logo */}
-                  <Image 
-                    src={getMediaUrl(settings.logo.desktop)} 
-                    alt={settings?.company?.name || "Logo"} 
-                    fill 
-                    className="object-contain hidden md:block" 
+                  <Image
+                    src={getMediaUrl(settings.logo.desktop)}
+                    alt={settings?.company?.name || "Logo"}
+                    fill
+                    loading="eager"
+                    priority
+                    className="object-contain hidden md:block"
                   />
                   {/* Mobile Logo */}
-                  <Image 
-                    src={getMediaUrl(settings.logo.mobile || settings.logo.desktop)} 
-                    alt={settings?.company?.name || "Logo"} 
-                    fill 
-                    className="object-contain md:hidden" 
+                  <Image
+                    src={getMediaUrl(settings.logo.mobile || settings.logo.desktop)}
+                    alt={settings?.company?.name || "Logo"}
+                    fill
+                    loading="eager"
+                    priority
+                    className="object-contain md:hidden"
                   />
                 </div>
               ) : (
@@ -256,11 +257,13 @@ export function Header({ initialSettings }: { initialSettings?: any }) {
           <Link href="/" onClick={() => setMobileMenuOpen(false)}>
             {settings?.logo ? (
               <div className="relative h-8 w-32">
-                <Image 
-                  src={getMediaUrl(settings.logo.mobile || settings.logo.desktop)} 
-                  alt={settings?.company?.name || "Logo"} 
-                  fill 
-                  className="object-contain object-left" 
+                <Image
+                  src={getMediaUrl(settings.logo.mobile || settings.logo.desktop)}
+                  alt={settings?.company?.name || "Logo"}
+                  fill
+                  loading="eager"
+                  priority
+                  className="object-contain object-left"
                 />
               </div>
             ) : (

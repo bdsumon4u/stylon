@@ -303,11 +303,13 @@ export default function CheckoutPage() {
 
               <div>
                 <label className="block text-sm font-bold mb-1">মোবাইল নাম্বার :</label>
-                <input 
-                  type="text" 
+                <input
+                  type="tel"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="মোবাইল নম্বর..." 
+                  onChange={(e) => setPhone(e.target.value.replace(/[^0-9]/g, ""))}
+                  placeholder="মোবাইল নম্বর..."
                   className="w-full border border-border-color rounded px-3 py-2 text-sm focus:border-primary outline-none"
                 />
               </div>

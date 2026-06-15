@@ -42,7 +42,7 @@ body {
   background: #9c27ff; 
 }
 .animate-marquee {
-  animation: marquee 25s linear infinite;
+  animation: marquee 12s linear infinite;
 }
 
 @keyframes marquee {
