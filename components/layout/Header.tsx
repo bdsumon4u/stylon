@@ -261,8 +261,6 @@ export function Header({ initialSettings }: { initialSettings?: any }) {
                   src={getMediaUrl(settings.logo.mobile || settings.logo.desktop)}
                   alt={settings?.company?.name || "Logo"}
                   fill
-                  loading="eager"
-                  priority
                   className="object-contain object-left"
                 />
               </div>

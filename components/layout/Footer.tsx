@@ -33,8 +33,6 @@ export function Footer({ initialSettings }: { initialSettings?: any }) {
                     src={getMediaUrl(settings.logo.desktop || settings.logo.mobile)}
                     alt={settings?.company?.name || "Stylon"}
                     fill
-                    loading="eager"
-                    priority
                     className="object-contain object-left"
                   />
                 </div>

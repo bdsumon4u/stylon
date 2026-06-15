@@ -229,7 +229,7 @@ function HeroSection({
 
       <ConfettiAccents />
 
-      <div className="relative max-w-[1100px] mx-auto px-4 lg:px-8 pt-12 pb-2 md:pt-16 md:pb-24 text-center">
+      <div className="relative max-w-[1100px] mx-auto px-4 lg:px-8 pt-12 md:pt-16 pb-20 text-center">
         <div className="relative inline-flex items-center justify-center mb-6">
           <span
             aria-hidden
@@ -283,7 +283,7 @@ function HeroSection({
           )}
         </div>
 
-        <div className="mt-8 grid grid-cols-3 gap-2 sm:gap-4 max-w-2xl mx-auto">
+        <div className="mt-8 hidden lg:grid grid-cols-3 gap-2 sm:gap-4 max-w-2xl mx-auto">
           <HeroStat
             icon={<Package className="w-4 h-4" />}
             label="পণ্য"
@@ -503,7 +503,7 @@ function OrderReceipt({
 
       <div aria-hidden className="border-t border-dashed border-border-color mx-5 md:mx-7" />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5 px-5 md:px-7 py-5 md:py-6">
+      <div className="grid grid-cols-2 gap-x-8 gap-y-5 px-5 md:px-7 py-5 md:py-6">
         <div>
           <h3 className="text-xs font-bold uppercase tracking-wider text-muted-text mb-3">
             কাস্টমার তথ্য
@@ -610,7 +610,7 @@ function OrderReceipt({
         </button>
         <button
           onClick={() => typeof window !== "undefined" && window.print()}
-          className="inline-flex items-center justify-center gap-2 bg-dark-gray hover:bg-black text-white font-semibold py-3 rounded-xl transition-colors"
+          className="hidden md:inline-flex items-center justify-center gap-2 bg-dark-gray hover:bg-black text-white font-semibold py-3 rounded-xl transition-colors"
         >
           <Printer className="w-4 h-4" /> প্রিন্ট / সেভ করুন
         </button>
