@@ -18,6 +18,9 @@ const nextConfig: NextConfig = {
     // Cache optimised images on disk for at least 24 h.
     minimumCacheTTL: 86400,
 
+    // Allowed quality values (must list every value used across the codebase).
+    qualities: [75, 85],
+
     // Responsive srcSet breakpoints.
     deviceSizes: [320, 480, 640, 750, 828, 1080, 1200, 1920],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
