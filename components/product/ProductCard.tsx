@@ -28,15 +28,16 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
   return (
     <div className="bg-[#f4f7fb] rounded-lg overflow-hidden flex flex-col group h-full transition-all hover:shadow-md">
       {/* Image Container */}
-      <Link href={`/products/${product.slug}`} prefetch={true} className="relative block aspect-square bg-white overflow-hidden">
+      <Link href={`/products/${product.slug}`} prefetch={true} className="relative block bg-white overflow-hidden">
         <Image
           src={product.image}
           alt={product.name || "Product Image"}
-          fill
+          width={500}
+          height={500}
           sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
           quality={75}
           priority={priority}
-          className="object-cover group-hover:scale-105 transition-transform duration-500"
+          className="w-full h-auto group-hover:scale-105 transition-transform duration-500"
         />
         
         {/* Discount Badge */}

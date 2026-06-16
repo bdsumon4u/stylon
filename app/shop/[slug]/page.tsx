@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState, useEffect } from "react";
+import { use, useRef, useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Minus, Plus, ChevronDown, ChevronUp, ShoppingCart, FileText, Video, Share2, ShieldCheck, ChevronLeft, ChevronRight, Star, MessageSquare, CheckCircle, Phone } from "lucide-react";
@@ -18,34 +18,99 @@ import "swiper/css/navigation";
 import "swiper/css/thumbs";
 
 function ZoomableImage({ src, alt, priority }: { src: string, alt: string, priority?: boolean }) {
-  const [position, setPosition] = useState({ x: '50%', y: '50%' });
-  const [isZoomed, setIsZoomed] = useState(false);
+  const [transformOrigin, setTransformOrigin] = useState('50% 50%');
+  const [scale, setScale] = useState(1);
+  const [isHovering, setIsHovering] = useState(false);
+
+  const containerRef = useRef<HTMLDivElement>(null);
+  // Holds initial finger distance when a pinch gesture starts
+  const pinchStateRef = useRef<{ initialDistance: number } | null>(null);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const { left, top, width, height } = e.currentTarget.getBoundingClientRect();
     const x = ((e.clientX - left) / width) * 100;
     const y = ((e.clientY - top) / height) * 100;
-    setPosition({ x: `${x}%`, y: `${y}%` });
+    setTransformOrigin(`${x}% ${y}%`);
   };
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const getTouchDistance = (touches: TouchList) => {
+      const dx = touches[0].clientX - touches[1].clientX;
+      const dy = touches[0].clientY - touches[1].clientY;
+      return Math.sqrt(dx * dx + dy * dy);
+    };
+
+    // Non-passive listeners are required to call preventDefault() and stop
+    // both the browser's native page-zoom and Swiper's swipe from stealing
+    // the 2-finger gesture before we can act on it.
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.touches.length !== 2) return;
+      e.preventDefault();
+      e.stopPropagation();
+      pinchStateRef.current = { initialDistance: getTouchDistance(e.touches) };
+      setIsHovering(false);
+      setTransformOrigin('50% 50%');
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (e.touches.length !== 2 || !pinchStateRef.current) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const ratio = getTouchDistance(e.touches) / pinchStateRef.current.initialDistance;
+      setScale(Math.max(1, Math.min(4, ratio)));
+    };
+
+    const onTouchEnd = (e: TouchEvent) => {
+      if (e.touches.length >= 2) return;
+      pinchStateRef.current = null;
+      setScale(1);
+      setTransformOrigin('50% 50%');
+    };
+
+    el.addEventListener('touchstart', onTouchStart, { passive: false });
+    el.addEventListener('touchmove', onTouchMove, { passive: false });
+    el.addEventListener('touchend', onTouchEnd, { passive: false });
+    el.addEventListener('touchcancel', onTouchEnd, { passive: false });
+
+    return () => {
+      el.removeEventListener('touchstart', onTouchStart);
+      el.removeEventListener('touchmove', onTouchMove);
+      el.removeEventListener('touchend', onTouchEnd);
+      el.removeEventListener('touchcancel', onTouchEnd);
+    };
+  }, []);
+
+  // scale > 1 means a pinch is live; suppress hover-zoom to avoid conflict
+  const isPinching = scale > 1.01;
+  const displayScale = isPinching ? scale : (isHovering ? 2 : 1);
+  const displayOrigin = isPinching ? '50% 50%' : transformOrigin;
+  // No transition during active gesture for direct 1:1 finger tracking;
+  // smooth reset when both fingers lift or mouse leaves.
+  const transition = isPinching || isHovering ? 'none' : 'transform 0.3s ease';
 
   return (
     <div
-      className="relative w-full h-full overflow-hidden cursor-crosshair group"
-      onMouseEnter={() => setIsZoomed(true)}
-      onMouseLeave={() => setIsZoomed(false)}
+      ref={containerRef}
+      className="relative w-full h-full overflow-hidden cursor-crosshair group touch-none select-none"
+      onMouseEnter={() => setIsHovering(true)}
+      onMouseLeave={() => setIsHovering(false)}
       onMouseMove={handleMouseMove}
     >
       <Image
         src={src}
         alt={alt}
         fill
-        sizes="(max-width: 1024px) 100vw, 540px"
+        sizes="(max-width: 1024px) 100vw, 700px"
         quality={85}
         priority={priority}
-        className={`object-cover transition-transform ${isZoomed ? "duration-0" : "duration-300"}`}
+        className="object-contain"
         style={{
-          transformOrigin: `${position.x} ${position.y}`,
-          transform: isZoomed ? 'scale(2)' : 'scale(1)'
+          transformOrigin: displayOrigin,
+          transform: `scale(${displayScale})`,
+          transition,
         }}
       />
     </div>
@@ -172,8 +237,8 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ slug:
       {/* Product Top Section */}
       <div className="flex flex-col lg:flex-row gap-8 lg:gap-12">
         {/* Left - Images */}
-        <div className="w-full lg:w-[480px] xl:w-[540px] shrink-0 space-y-4">
-          <div className="aspect-[4/5] relative bg-gray-100 rounded-lg overflow-hidden border border-border-color shadow-sm group">
+        <div className="w-full lg:w-[500px] shrink-0 space-y-4">
+          <div className="aspect-square relative bg-gray-100 rounded-lg overflow-hidden border border-border-color shadow-sm group">
             <Swiper
               style={{
                 "--swiper-navigation-color": "#000",

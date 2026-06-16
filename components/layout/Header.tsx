@@ -199,7 +199,7 @@ export function Header({ initialSettings }: { initialSettings?: any }) {
           </div>
 
           {/* Right Actions */}
-          <div className="flex items-center justify-end gap-3 lg:gap-5 lg:w-[360px] shrink-0">
+          <div className="flex items-center justify-end gap-3 lg:w-[360px] shrink-0">
             {/* Search (Desktop) */}
             <div className="hidden lg:flex relative w-full max-w-[320px]">
               <SearchDropdown />
@@ -225,7 +225,7 @@ export function Header({ initialSettings }: { initialSettings?: any }) {
 
             {/* Account Icon (Mobile) */}
             <a 
-              className="lg:hidden p-2 text-dark-gray hover:text-primary transition-colors"
+              className="hidden lg:block p-2 text-dark-gray hover:text-primary transition-colors"
               href={process.env.NEXT_PUBLIC_ADMIN_URL || "/getpass"}
             >
               <User className="w-6 h-6" />
