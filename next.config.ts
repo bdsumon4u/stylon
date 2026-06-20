@@ -39,7 +39,7 @@ const nextConfig: NextConfig = {
       default-src 'self';
       script-src 'self' 'unsafe-inline' 'unsafe-eval' https://static.cloudflareinsights.com;
       style-src 'self' 'unsafe-inline';
-      img-src 'self' blob: data: https://** http://localhost:8000 http://127.0.0.1:8000;
+      img-src 'self' blob: data: https: http://localhost:8000 http://127.0.0.1:8000;
       font-src 'self' data:;
       connect-src 'self' https://brain.kroymela.com https://www.kroymela.com https://kroymela.com https://static.cloudflareinsights.com http://localhost:8000 http://127.0.0.1:8000;
       object-src 'none';
