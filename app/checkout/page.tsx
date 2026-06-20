@@ -1,6 +1,6 @@
 "use client";
 
-import { useCartStore } from "@/store/cart";
+import { useCartStore, getCartLineId, getDisplayName } from "@/store/cart";
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -84,6 +84,7 @@ export default function CheckoutPage() {
         items: items.map(item => ({
           id: item.product.id,
           quantity: item.quantity,
+          variation_id: item.variation?.id ?? null,
         })),
       });
 
@@ -91,11 +92,13 @@ export default function CheckoutPage() {
       // sessionStorage. The page reads ?order=ID and falls back to the stored
       // blob for the full breakdown (items, address, etc.).
       const orderItems = items.map(item => {
-        const unitPrice = item.product.salePrice || item.product.regularPrice;
+        const unitPrice = item.variation
+          ? (item.variation.salePrice ?? item.variation.regularPrice)
+          : (item.product.salePrice ?? item.product.regularPrice);
         return {
-          id: item.product.id,
-          name: item.product.name,
-          image: item.product.image,
+          id: item.variation?.id ?? item.product.id,
+          name: getDisplayName(item.product.name, item.variation?.name),
+          image: item.variation?.image || item.product.image,
           quantity: item.quantity,
           price: unitPrice,
           subtotal: unitPrice * item.quantity,
@@ -151,54 +154,62 @@ export default function CheckoutPage() {
 
             {/* Table Body */}
             <div className="divide-y divide-border-color">
-              {items.map((item, idx) => (
-                <div key={item.product.id} className="grid grid-cols-1 md:grid-cols-12 items-center p-4 gap-4 md:gap-0">
-                  <div className="hidden md:block col-span-1 text-sm">{idx + 1}</div>
-                  
-                  <div className="col-span-1 md:col-span-2 flex justify-start">
-                    <div className="w-16 h-20 bg-gray-100 rounded relative overflow-hidden border border-border-color">
-                      <Image src={item.product.image} alt={item.product.name} fill sizes="64px" className="object-cover" />
+              {items.map((item, idx) => {
+                const lineId = getCartLineId(item.product.id, item.variation?.id);
+                const linePrice = item.variation
+                  ? (item.variation.salePrice ?? item.variation.regularPrice)
+                  : (item.product.salePrice ?? item.product.regularPrice);
+                const lineImage = item.variation?.image || item.product.image;
+
+                return (
+                  <div key={lineId} className="grid grid-cols-1 md:grid-cols-12 items-center p-4 gap-4 md:gap-0">
+                    <div className="hidden md:block col-span-1 text-sm">{idx + 1}</div>
+                    
+                    <div className="col-span-1 md:col-span-2 flex justify-start">
+                      <div className="w-16 h-20 bg-gray-100 rounded relative overflow-hidden border border-border-color">
+                        <Image src={lineImage} alt={item.product.name} fill sizes="64px" className="object-cover" />
+                      </div>
+                    </div>
+                    
+                    <div className="col-span-1 md:col-span-4 text-center md:text-left">
+                      <h3 className="text-sm font-medium">{getDisplayName(item.product.name, item.variation?.name)}</h3>
+                    </div>
+
+                    <div className="col-span-1 md:col-span-2 text-center text-sm font-medium">
+                      {linePrice} Tk
+                    </div>
+
+                    <div className="col-span-1 md:col-span-2 flex justify-center">
+                      <div className="flex items-center border border-border-color rounded">
+                        <button 
+                          className="p-1.5 text-black hover:bg-gray-50"
+                          onClick={() => updateQuantity(lineId, Math.max(1, item.quantity - 1))}
+                        >
+                          <Minus className="w-3 h-3" />
+                        </button>
+                        <span className="px-3 py-1 text-sm text-center min-w-[32px] border-x border-border-color">
+                          {item.quantity}
+                        </span>
+                        <button 
+                          className="p-1.5 text-black hover:bg-gray-50"
+                          onClick={() => updateQuantity(lineId, item.quantity + 1)}
+                        >
+                          <Plus className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="col-span-1 md:col-span-1 flex justify-center mt-2 md:mt-0">
+                      <button 
+                        onClick={() => removeItem(lineId)}
+                        className="bg-sale-red text-white p-2 rounded hover:bg-red-600 transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
                   </div>
-                  
-                  <div className="col-span-1 md:col-span-4 text-center md:text-left">
-                    <h3 className="text-sm font-medium">{item.product.name}</h3>
-                  </div>
-
-                  <div className="col-span-1 md:col-span-2 text-center text-sm font-medium">
-                    {item.product.salePrice || item.product.regularPrice} Tk
-                  </div>
-
-                  <div className="col-span-1 md:col-span-2 flex justify-center">
-                    <div className="flex items-center border border-border-color rounded">
-                      <button 
-                        className="p-1.5 text-black hover:bg-gray-50"
-                        onClick={() => updateQuantity(item.product.id, Math.max(1, item.quantity - 1))}
-                      >
-                        <Minus className="w-3 h-3" />
-                      </button>
-                      <span className="px-3 py-1 text-sm text-center min-w-[32px] border-x border-border-color">
-                        {item.quantity}
-                      </span>
-                      <button 
-                        className="p-1.5 text-black hover:bg-gray-50"
-                        onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
-                      >
-                        <Plus className="w-3 h-3" />
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="col-span-1 md:col-span-1 flex justify-center mt-2 md:mt-0">
-                    <button 
-                      onClick={() => removeItem(item.product.id)}
-                      className="bg-sale-red text-white p-2 rounded hover:bg-red-600 transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
               
               {items.length === 0 && (
                 <div className="p-8 text-center text-muted-text">
