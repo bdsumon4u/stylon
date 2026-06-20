@@ -7,6 +7,10 @@ const nextConfig: NextConfig = {
         source: "/products/:slug",
         destination: "/shop/:slug",
       },
+      {
+        source: "/categories/:slug/products",
+        destination: "/shop?category%5B%5D=:slug",
+      },
     ];
   },
 

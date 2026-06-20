@@ -2,7 +2,7 @@
 // Bump this string whenever you deploy changes to the SW. The activate handler
 // deletes all caches whose name doesn't match the new version, forcing a fresh
 // start for every cache bucket.
-const SW_VERSION = 'v3';
+const SW_VERSION = 'v4';
 
 const CACHE_NAME       = `stylon-assets-${SW_VERSION}`;
 const IMAGE_CACHE_NAME = `stylon-images-${SW_VERSION}`;
@@ -49,6 +49,9 @@ self.addEventListener('activate', (event) => {
 
 /** Clone a Response and stamp the current time in a custom header. */
 function stampResponse(response) {
+  if (response.type === 'opaque') {
+    return response;
+  }
   const headers = new Headers(response.headers);
   headers.set(CACHE_TIME_HEADER, String(Date.now()));
   return new Response(response.body, {
@@ -60,6 +63,9 @@ function stampResponse(response) {
 
 /** True if the cached response is older than maxAgeMs. */
 function isExpired(cachedResponse, maxAgeMs) {
+  if (cachedResponse.type === 'opaque') {
+    return false; // Serve immediately from cache, update in background (SWR)
+  }
   const cacheTime = parseInt(cachedResponse.headers.get(CACHE_TIME_HEADER) || '0', 10);
   return cacheTime === 0 || Date.now() - cacheTime > maxAgeMs;
 }
