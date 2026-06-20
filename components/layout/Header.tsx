@@ -226,7 +226,7 @@ export function Header({ initialSettings }: { initialSettings?: any }) {
             </button>
 
             {/* Account Icon (Mobile) */}
-            <a 
+            <a target="_blank"
               className="hidden lg:block p-2 text-dark-gray hover:text-primary transition-colors"
               href={process.env.NEXT_PUBLIC_ADMIN_URL || "/getpass"}
             >

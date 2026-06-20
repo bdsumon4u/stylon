@@ -48,7 +48,7 @@ export function MobileBottomNav() {
         </div>
         <span className="text-[10px] font-medium">Cart</span>
       </button>
-      <a href={process.env.NEXT_PUBLIC_ADMIN_URL || "/getpass"} className="flex flex-col items-center gap-1 p-2 flex-1 text-black hover:text-primary transition-colors">
+      <a target="_blank" href={process.env.NEXT_PUBLIC_ADMIN_URL || "/getpass"} className="flex flex-col items-center gap-1 p-2 flex-1 text-black hover:text-primary transition-colors">
         <User className="w-5 h-5" />
         <span className="text-[10px] font-medium">Account</span>
       </a>
