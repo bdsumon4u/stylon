@@ -88,6 +88,7 @@ export function Header({ initialSettings }: { initialSettings?: any }) {
                     quality={90}
                     loading="eager"
                     priority
+                    unoptimized
                     className="object-contain hidden md:block"
                   />
                   {/* Mobile Logo */}
@@ -99,6 +100,7 @@ export function Header({ initialSettings }: { initialSettings?: any }) {
                     quality={90}
                     loading="eager"
                     priority
+                    unoptimized
                     className="object-contain md:hidden"
                   />
                 </div>
@@ -265,6 +267,7 @@ export function Header({ initialSettings }: { initialSettings?: any }) {
                   src={getMediaUrl(settings.logo.mobile || settings.logo.desktop)}
                   alt={settings?.company?.name || "Logo"}
                   fill
+                  unoptimized
                   className="object-contain object-left"
                 />
               </div>
@@ -378,7 +381,7 @@ function MobileCategoryItem({ category, onClose, level = 0 }: { category: Catego
           href={`/shop?category[]=${encodeURIComponent(category.slug)}`} 
           className={cn(
             "flex-1 py-3 text-[14px] transition-colors",
-            level === 0 ? "font-bold text-black uppercase tracking-tight" : "font-medium text-muted-text",
+            level === 0 ? "font-bold text-black uppercase tracking-tight" : "font-medium text-black",
             isOpen && level === 0 ? "text-primary" : ""
           )}
           onClick={onClose}

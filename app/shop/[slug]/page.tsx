@@ -7,7 +7,7 @@ import { Minus, Plus, ChevronDown, ChevronUp, ShoppingCart, FileText, Video, Sha
 import { useCartStore } from "@/store/cart";
 import { ProductCard } from "@/components/product/ProductCard";
 import { getProduct, getRelatedProducts, getProductReviews, submitProductReview, getSettings } from "@/lib/api";
-import { Product } from "@/types";
+import { Product, ProductVariation } from "@/types";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { FreeMode, Navigation, Thumbs, Mousewheel, Keyboard } from "swiper/modules";
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
@@ -43,13 +43,18 @@ function ZoomableImage({ src, alt, priority }: { src: string, alt: string, prior
       return Math.sqrt(dx * dx + dy * dy);
     };
 
-    // Non-passive listeners are required to call preventDefault() and stop
-    // both the browser's native page-zoom and Swiper's swipe from stealing
-    // the 2-finger gesture before we can act on it.
+    // Pinch tracking only — do NOT consume single-finger touches, otherwise the
+    // browser can't turn the vertical drag into page scroll. The handlers below
+    // are passive by default and only flip to non-passive once a 2-finger
+    // gesture has actually begun (which is the only case where we need to
+    // preventDefault to suppress native page-zoom and Swiper's swipe).
     const onTouchStart = (e: TouchEvent) => {
-      if (e.touches.length !== 2) return;
-      e.preventDefault();
-      e.stopPropagation();
+      if (e.touches.length !== 2) {
+        // Make sure a stale pinch state from a previous gesture doesn't
+        // survive a fresh single-finger scroll.
+        pinchStateRef.current = null;
+        return;
+      }
       pinchStateRef.current = { initialDistance: getTouchDistance(e.touches) };
       setIsHovering(false);
       setTransformOrigin('50% 50%');
@@ -57,6 +62,8 @@ function ZoomableImage({ src, alt, priority }: { src: string, alt: string, prior
 
     const onTouchMove = (e: TouchEvent) => {
       if (e.touches.length !== 2 || !pinchStateRef.current) return;
+      // First move where the gesture is actually a pinch — only now do we
+      // need to override the browser's native page-zoom and Swiper's swipe.
       e.preventDefault();
       e.stopPropagation();
       const ratio = getTouchDistance(e.touches) / pinchStateRef.current.initialDistance;
@@ -70,10 +77,10 @@ function ZoomableImage({ src, alt, priority }: { src: string, alt: string, prior
       setTransformOrigin('50% 50%');
     };
 
-    el.addEventListener('touchstart', onTouchStart, { passive: false });
+    el.addEventListener('touchstart', onTouchStart, { passive: true });
     el.addEventListener('touchmove', onTouchMove, { passive: false });
-    el.addEventListener('touchend', onTouchEnd, { passive: false });
-    el.addEventListener('touchcancel', onTouchEnd, { passive: false });
+    el.addEventListener('touchend', onTouchEnd, { passive: true });
+    el.addEventListener('touchcancel', onTouchEnd, { passive: true });
 
     return () => {
       el.removeEventListener('touchstart', onTouchStart);
@@ -94,7 +101,7 @@ function ZoomableImage({ src, alt, priority }: { src: string, alt: string, prior
   return (
     <div
       ref={containerRef}
-      className="relative w-full h-full overflow-hidden cursor-crosshair group touch-none select-none"
+      className="relative w-full h-full overflow-hidden cursor-crosshair group select-none"
       onMouseEnter={() => setIsHovering(true)}
       onMouseLeave={() => setIsHovering(false)}
       onMouseMove={handleMouseMove}
@@ -112,6 +119,7 @@ function ZoomableImage({ src, alt, priority }: { src: string, alt: string, prior
           transform: `scale(${displayScale})`,
           transition,
         }}
+        draggable={false}
       />
     </div>
   );
@@ -128,6 +136,11 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ slug:
   const [quantity, setQuantity] = useState(1);
   const [activeAccordion, setActiveAccordion] = useState<string>("description");
   const [thumbsSwiper, setThumbsSwiper] = useState<any>(null);
+
+  // Variation state
+  const [selectedVariation, setSelectedVariation] = useState<ProductVariation | null>(null);
+  // Maps attributeId (string) -> optionId (number)
+  const [selectedOptions, setSelectedOptions] = useState<Record<string, number>>({});
 
   const [reviews, setReviews] = useState<any[]>([]);
   const [reviewsPage, setReviewsPage] = useState(1);
@@ -158,6 +171,22 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ slug:
         setHasMoreReviews(reviewsRes.pagination?.current_page < reviewsRes.pagination?.last_page);
         setReviewsPage(1);
         setSettings(settingsRes);
+
+        // Pick a random variation on load (mirrors Laravel's variations->random())
+        if (prod.variations && prod.variations.length > 0) {
+          const randomIdx = Math.floor(Math.random() * prod.variations.length);
+          const randomVar = prod.variations[randomIdx];
+          setSelectedVariation(randomVar);
+          // Build selectedOptions from the variation's optionIds mapped back to attributeIds
+          if (prod.attributes) {
+            const opts: Record<string, number> = {};
+            for (const attr of prod.attributes) {
+              const matched = attr.options.find((o) => randomVar.optionIds.includes(o.id));
+              if (matched) opts[String(attr.id)] = matched.id;
+            }
+            setSelectedOptions(opts);
+          }
+        }
       } catch (error) {
         console.error("Failed to fetch product data:", error);
       } finally {
@@ -202,16 +231,40 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ slug:
     );
   }
 
+  // Resolve display price/stock: prefer variation when one is selected
+  const displayRegularPrice = selectedVariation?.regularPrice ?? product.regularPrice;
+  const displaySalePrice = selectedVariation?.salePrice ?? product.salePrice ?? product.regularPrice;
+  const displayInStock = selectedVariation ? selectedVariation.inStock : product.inStock;
+  const displayStockCount = selectedVariation ? selectedVariation.stockCount : product.stockCount;
+
   const allImages = product.images && product.images.length > 0
     ? product.images
     : [product.image, ...(product.thumbnails || [])];
 
+  const handleOptionChange = (attributeId: number, optionId: number) => {
+    const newOptions = { ...selectedOptions, [String(attributeId)]: optionId };
+    setSelectedOptions(newOptions);
+
+    if (product?.variations && product.attributes) {
+      // Find the variation whose optionIds include one option per selected attribute
+      const matched = product.variations.find((v) =>
+        product.attributes!.every((attr) => {
+          const selectedOpt = newOptions[String(attr.id)];
+          return selectedOpt == null || v.optionIds.includes(selectedOpt);
+        })
+      );
+      if (matched) setSelectedVariation(matched);
+    }
+  };
+
   const handleAddToCart = () => {
-    addItem(product, quantity);
+    if (!product) return;
+    addItem(product, quantity, selectedVariation ?? null);
   };
 
   const handleOrderNow = () => {
-    addItem(product, quantity);
+    if (!product) return;
+    addItem(product, quantity, selectedVariation ?? null);
     setOrderModalOpen(true);
   };
 
@@ -311,6 +364,11 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ slug:
         <div className="flex-1 flex flex-col pt-2 lg:pt-6">
           <h1 className="text-2xl lg:text-3xl font-bold text-black mb-2 leading-tight">
             {product.name}
+            {selectedVariation && (
+              <span className="text-muted-text font-normal text-xl lg:text-2xl">
+                {" "}[{selectedVariation.name}]
+              </span>
+            )}
           </h1>
 
           <div className="flex items-center gap-4 mb-4">
@@ -328,17 +386,17 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ slug:
 
           {/* Pricing */}
           <div className="flex items-center gap-4 mb-4">
-            {product.salePrice && product.salePrice < product.regularPrice ? (
+            {displaySalePrice < displayRegularPrice ? (
               <>
-                <span className="text-sale-red line-through text-lg md:text-md font-medium">{product.regularPrice} Tk</span>
-                <span className="text-black font-bold text-2xl md:text-xl">{product.salePrice} Tk</span>
+                <span className="text-sale-red line-through text-lg md:text-md font-medium">{displayRegularPrice} Tk</span>
+                <span className="text-black font-bold text-2xl md:text-xl">{displaySalePrice} Tk</span>
               </>
             ) : (
-              <span className="text-black font-bold text-2xl md:text-xl">{product.regularPrice} Tk</span>
+              <span className="text-black font-bold text-2xl md:text-xl">{displayRegularPrice} Tk</span>
             )}
-            {product.discountPercentage && product.discountPercentage > 0 && (
+            {displaySalePrice < displayRegularPrice && (
               <span className="bg-black text-white px-3 py-1 rounded-full text-[11px] font-bold ml-2 shadow-md">
-                Save {product.regularPrice - (product.salePrice || 0)} Tk
+                Save {displayRegularPrice - displaySalePrice} Tk
               </span>
             )}
           </div>
@@ -349,9 +407,48 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ slug:
             </p>
           )}
 
+          {/* Attribute / Variation Picker */}
+          {product.attributes && product.attributes.length > 0 && (
+            <div className="mb-4 space-y-3">
+              {product.attributes.map((attr) => {
+                const isColor = attr.name.toLowerCase() === "color" || attr.name.toLowerCase() === "colour";
+                return (
+                  <div key={attr.id} className="flex items-center flex-wrap gap-2">
+                    <span className="text-sm font-bold text-black min-w-[52px] shrink-0">{attr.name}:</span>
+                    <div className="flex flex-wrap gap-2">
+                      {attr.options.map((option) => {
+                        const isSelected = selectedOptions[String(attr.id)] === option.id;
+                        if (isColor) {
+                          return (
+                            <button
+                              key={option.id}
+                              title={option.name}
+                              onClick={() => handleOptionChange(attr.id, option.id)}
+                              className={`w-7 h-7 rounded-full border-2 transition-all ${isSelected ? "border-black scale-110 shadow-md" : "border-gray-300 hover:border-gray-600"}`}
+                              style={{ backgroundColor: option.value || "#cccccc" }}
+                            />
+                          );
+                        }
+                        return (
+                          <button
+                            key={option.id}
+                            onClick={() => handleOptionChange(attr.id, option.id)}
+                            className={`px-3 py-1.5 text-sm font-medium border rounded transition-all ${isSelected ? "bg-black text-white border-black shadow-sm" : "bg-white text-black border-gray-300 hover:border-black"}`}
+                          >
+                            {option.name}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
           <div className="mb-4 inline-flex gap-x-2">
-            <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-bold border ${product.inStock ? 'bg-[#e8f5e9] text-discount-green border-[#c8e6c9]' : 'bg-red-50 text-sale-red border-red-200'}`}>
-              <span>{product.inStock ? product.stockCount === -1 ? 'In Stock' : product.stockCount + ' ' + 'In Stock' : 'Out of Stock'}</span>
+            <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-bold border ${displayInStock ? 'bg-[#e8f5e9] text-discount-green border-[#c8e6c9]' : 'bg-red-50 text-sale-red border-red-200'}`}>
+              <span>{displayInStock ? displayStockCount === -1 ? 'In Stock' : displayStockCount + ' ' + 'In Stock' : 'Out of Stock'}</span>
             </span>
             <div className="flex items-center border border-border-color rounded w-auto h-[48px]">
               <button
@@ -530,7 +627,7 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ slug:
                             <Star key={i} className={`w-3 h-3 ${i < review.rating ? "text-yellow-400 fill-yellow-400" : "text-gray-300"}`} />
                           ))}
                         </div>
-                        <p className="text-sm text-muted-text leading-relaxed italic">"{review.review}"</p>
+                        <p className="text-sm text-muted-text leading-relaxed">"{review.review}"</p>
                       </div>
                     ))
                   ) : (
@@ -638,7 +735,7 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ slug:
             <Image src={product.image} alt={product.name || "Product"} fill sizes="40px" className="object-cover" priority={true} />
           </div>
           <div className="flex flex-col">
-            <span className="font-bold text-[13px] text-primary leading-tight">{product.salePrice || product.regularPrice} Tk</span>
+            <span className="font-bold text-[13px] text-primary leading-tight">{displaySalePrice} Tk</span>
             <div className="flex items-center gap-1 mt-0.5">
               <button
                 className="w-5 h-5 rounded-full border border-border-color flex items-center justify-center text-muted-text bg-white"

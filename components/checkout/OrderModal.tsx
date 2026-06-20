@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import { X, Minus, Plus, Trash2, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useCartStore } from "@/store/cart";
+import { useCartStore, getCartLineId, getDisplayName } from "@/store/cart";
 import { placeOrder, getSettings } from "@/lib/api";
 import { saveThankYouOrder, buildThankYouOrder } from "@/lib/order-storage";
 
@@ -88,16 +88,20 @@ export function OrderModal({ isOpen, onClose }: OrderModalProps) {
         items: items.map(item => ({
           id: item.product.id,
           quantity: item.quantity,
+          variation_id: item.variation?.id ?? null,
         })),
       });
 
       // Snapshot order data for the /thank-you page.
       const orderItems = items.map(item => {
-        const unitPrice = item.product.salePrice || item.product.regularPrice;
+        const unitPrice = item.variation
+          ? (item.variation.salePrice ?? item.variation.regularPrice)
+          : (item.product.salePrice ?? item.product.regularPrice);
+        const displayName = getDisplayName(item.product.name, item.variation?.name);
         return {
-          id: item.product.id,
-          name: item.product.name,
-          image: item.product.image,
+          id: item.variation?.id ?? item.product.id,
+          name: displayName,
+          image: item.variation?.image || item.product.image,
           quantity: item.quantity,
           price: unitPrice,
           subtotal: unitPrice * item.quantity,
@@ -236,44 +240,54 @@ export function OrderModal({ isOpen, onClose }: OrderModalProps) {
             <h3 className="font-bold text-black mb-4 pb-2 border-b border-border-color">অর্ডারের সারসংক্ষেপ</h3>
             
             <div className="flex-1 overflow-y-auto overflow-x-hidden mb-4 space-y-3 custom-scrollbar pr-1 max-h-[180px]">
-              {items.map((item) => (
-                <div key={item.product.id} className="flex gap-3 bg-white p-2 rounded border border-border-color relative">
-                  <button 
-                    onClick={() => removeItem(item.product.id)}
-                    className="absolute top-0 right-0 bg-sale-red text-white p-1 rounded-full z-10 hover:bg-red-600 transition-colors shadow-sm"
-                  >
-                    <Trash2 className="w-3 h-3" />
-                  </button>
-                  <div className="w-14 h-16 bg-gray-100 rounded relative overflow-hidden shrink-0 border border-border-color">
-                    <Image src={item.product.image} alt={item.product.name || "Cart Item"} fill sizes="56px" className="object-cover" />
-                  </div>
-                  <div className="flex-1 flex flex-col justify-between min-w-0">
-                    <h4 className="text-[12px] font-medium text-black line-clamp-1 leading-tight">{item.product.name}</h4>
-                    <div className="flex items-center justify-between mt-1">
-                      <div className="flex items-center border border-border-color rounded bg-gray-50">
-                        <button 
-                          className="px-1.5 py-0.5 text-black hover:bg-gray-200"
-                          onClick={() => updateQuantity(item.product.id, Math.max(1, item.quantity - 1))}
-                        >
-                          <Minus className="w-3 h-3" />
-                        </button>
-                        <span className="px-2 py-0.5 text-[12px] text-black text-center min-w-[24px] font-medium bg-white border-x border-border-color">
-                          {item.quantity}
-                        </span>
-                        <button 
-                          className="px-1.5 py-0.5 text-black hover:bg-gray-200"
-                          onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
-                        >
-                          <Plus className="w-3 h-3" />
-                        </button>
-                      </div>
-                      <div className="font-bold text-[13px] text-primary">
-                        {(item.product.salePrice || item.product.regularPrice) * item.quantity} Tk
+              {items.map((item) => {
+                const lineId = getCartLineId(item.product.id, item.variation?.id);
+                const linePrice = item.variation
+                  ? (item.variation.salePrice ?? item.variation.regularPrice)
+                  : (item.product.salePrice ?? item.product.regularPrice);
+                const lineImage = item.variation?.image || item.product.image;
+
+                return (
+                  <div key={lineId} className="flex gap-3 bg-white p-2 rounded border border-border-color relative">
+                    <button
+                      onClick={() => removeItem(lineId)}
+                      className="absolute top-0 right-0 bg-sale-red text-white p-1 rounded-full z-10 hover:bg-red-600 transition-colors shadow-sm"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                    <div className="w-14 h-16 bg-gray-100 rounded relative overflow-hidden shrink-0 border border-border-color">
+                      <Image src={lineImage} alt={item.product.name || "Cart Item"} fill sizes="56px" className="object-cover" />
+                    </div>
+                    <div className="flex-1 flex flex-col justify-between min-w-0">
+                      <h4 className="text-[12px] font-medium text-black line-clamp-1 leading-tight">
+                        {getDisplayName(item.product.name, item.variation?.name)}
+                      </h4>
+                      <div className="flex items-center justify-between mt-1">
+                        <div className="flex items-center border border-border-color rounded bg-gray-50">
+                          <button
+                            className="px-1.5 py-0.5 text-black hover:bg-gray-200"
+                            onClick={() => updateQuantity(lineId, Math.max(1, item.quantity - 1))}
+                          >
+                            <Minus className="w-3 h-3" />
+                          </button>
+                          <span className="px-2 py-0.5 text-[12px] text-black text-center min-w-[24px] font-medium bg-white border-x border-border-color">
+                            {item.quantity}
+                          </span>
+                          <button
+                            className="px-1.5 py-0.5 text-black hover:bg-gray-200"
+                            onClick={() => updateQuantity(lineId, item.quantity + 1)}
+                          >
+                            <Plus className="w-3 h-3" />
+                          </button>
+                        </div>
+                        <div className="font-bold text-[13px] text-primary">
+                          {linePrice * item.quantity} Tk
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
               {items.length === 0 && (
                 <div className="text-center text-muted-text py-4 text-sm">Cart is empty</div>
               )}

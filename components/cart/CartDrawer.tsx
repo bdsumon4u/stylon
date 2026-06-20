@@ -1,6 +1,6 @@
 "use client";
 
-import { useCartStore } from "@/store/cart";
+import { useCartStore, getCartLineId, getDisplayName } from "@/store/cart";
 import { cn } from "@/lib/utils";
 import { X, Minus, Plus, Trash2 } from "lucide-react";
 import Image from "next/image";
@@ -51,60 +51,68 @@ export function CartDrawer() {
           {items.length === 0 ? (
             <div className="text-center text-muted-text mt-10">Your cart is empty</div>
           ) : (
-            items.map((item) => (
-              <div key={item.product.id} className="flex gap-3 border-b border-border-color pb-4 relative group">
-                {/* Delete Button */}
-                <button 
-                  onClick={() => removeItem(item.product.id)}
-                  className="absolute top-0 right-0 bg-sale-red text-white p-0.5 rounded-full z-10 hover:bg-red-600 transition-colors"
-                >
-                  <X className="w-3 h-3" />
-                </button>
+            items.map((item) => {
+              const lineId = getCartLineId(item.product.id, item.variation?.id);
+              const linePrice = item.variation
+                ? (item.variation.salePrice ?? item.variation.regularPrice)
+                : (item.product.salePrice ?? item.product.regularPrice);
+              const lineImage = item.variation?.image || item.product.image;
 
-                <div className="w-16 h-20 bg-gray-100 rounded relative overflow-hidden shrink-0 border border-border-color">
-                  <Image 
-                    src={item.product.image} 
-                    alt={item.product.name} 
-                    fill 
-                    sizes="64px"
-                    className="object-cover"
-                  />
-                </div>
-                <div className="flex-1 flex flex-col justify-between">
-                  <div>
-                    <h4 className="text-[12px] font-semibold text-black line-clamp-2 leading-tight">
-                      {item.product.name}
-                    </h4>
-                    <div className="text-[11px] text-muted-text mt-0.5">
-                      Tk {item.product.salePrice || item.product.regularPrice}
+              return (
+                <div key={lineId} className="flex gap-3 border-b border-border-color pb-4 relative group">
+                  {/* Delete Button */}
+                  <button
+                    onClick={() => removeItem(lineId)}
+                    className="absolute top-0 right-0 bg-sale-red text-white p-0.5 rounded-full z-10 hover:bg-red-600 transition-colors"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+
+                  <div className="w-16 h-20 bg-gray-100 rounded relative overflow-hidden shrink-0 border border-border-color">
+                    <Image
+                      src={lineImage}
+                      alt={item.product.name}
+                      fill
+                      sizes="64px"
+                      className="object-cover"
+                    />
+                  </div>
+                  <div className="flex-1 flex flex-col justify-between">
+                    <div>
+                      <h4 className="text-[12px] font-semibold text-black line-clamp-2 leading-tight">
+                        {getDisplayName(item.product.name, item.variation?.name)}
+                      </h4>
+                      <div className="text-[11px] text-muted-text mt-0.5">
+                        Tk {linePrice}
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between mt-2">
+                      <div className="flex items-center border border-border-color rounded">
+                        <button
+                          className="px-2 py-0.5 text-black hover:bg-gray-50 disabled:opacity-50"
+                          onClick={() => updateQuantity(lineId, Math.max(1, item.quantity - 1))}
+                          disabled={item.quantity <= 1}
+                        >
+                          <Minus className="w-3 h-3" />
+                        </button>
+                        <span className="px-2 py-0.5 text-[12px] text-black text-center min-w-[28px] border-x border-border-color">
+                          {item.quantity}
+                        </span>
+                        <button
+                          className="px-2 py-0.5 text-black hover:bg-gray-50"
+                          onClick={() => updateQuantity(lineId, item.quantity + 1)}
+                        >
+                          <Plus className="w-3 h-3" />
+                        </button>
+                      </div>
+                      <div className="font-bold text-[13px] text-sale-red">
+                        Tk {linePrice * item.quantity}
+                      </div>
                     </div>
                   </div>
-                  <div className="flex items-center justify-between mt-2">
-                    <div className="flex items-center border border-border-color rounded">
-                      <button 
-                        className="px-2 py-0.5 text-black hover:bg-gray-50 disabled:opacity-50"
-                        onClick={() => updateQuantity(item.product.id, Math.max(1, item.quantity - 1))}
-                        disabled={item.quantity <= 1}
-                      >
-                        <Minus className="w-3 h-3" />
-                      </button>
-                      <span className="px-2 py-0.5 text-[12px] text-black text-center min-w-[28px] border-x border-border-color">
-                        {item.quantity}
-                      </span>
-                      <button 
-                        className="px-2 py-0.5 text-black hover:bg-gray-50"
-                        onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
-                      >
-                        <Plus className="w-3 h-3" />
-                      </button>
-                    </div>
-                    <div className="font-bold text-[13px] text-sale-red">
-                      Tk {(item.product.salePrice || item.product.regularPrice) * item.quantity}
-                    </div>
-                  </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
 

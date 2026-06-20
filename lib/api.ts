@@ -191,7 +191,7 @@ export interface CheckoutPayload {
   address: string;
   note?: string;
   shipping: "Inside Dhaka" | "Outside Dhaka";
-  items: Array<{ id: string; quantity: number }>;
+  items: Array<{ id: string; quantity: number; variation_id?: string | null }>;
 }
 
 export interface CheckoutResponse {

@@ -1,3 +1,29 @@
+export interface ProductOption {
+  id: number;
+  name: string;
+  value?: string;
+}
+
+export interface ProductAttribute {
+  id: number;
+  name: string;
+  options: ProductOption[];
+}
+
+export interface ProductVariation {
+  id: string;
+  name: string;
+  sku: string;
+  slug: string;
+  image: string | null;
+  images: string[];
+  regularPrice: number;
+  salePrice: number;
+  inStock: boolean;
+  stockCount: number;
+  optionIds: number[];
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -21,6 +47,9 @@ export interface Product {
   shippingOutside?: number;
   averageRating: number;
   reviewsCount: number;
+  attributes?: ProductAttribute[];
+  variations?: ProductVariation[];
+  hasVariations?: boolean;
 }
 
 export interface Category {

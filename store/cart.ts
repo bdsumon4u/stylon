@@ -1,10 +1,11 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { Product } from "@/types";
+import { Product, ProductVariation } from "@/types";
 import { toast } from "sonner";
 
 export interface CartItem {
   product: Product;
+  variation?: ProductVariation | null;
   quantity: number;
 }
 
@@ -14,9 +15,9 @@ interface CartState {
   isOrderModalOpen: boolean;
   isMobileMenuOpen: boolean;
   mobileActiveTab: "categories" | "menu";
-  addItem: (product: Product, quantity?: number) => void;
-  removeItem: (productId: string) => void;
-  updateQuantity: (productId: string, quantity: number) => void;
+  addItem: (product: Product, quantity?: number, variation?: ProductVariation | null) => void;
+  removeItem: (lineId: string) => void;
+  updateQuantity: (lineId: string, quantity: number) => void;
   clearCart: () => void;
   toggleDrawer: () => void;
   setDrawerOpen: (isOpen: boolean) => void;
@@ -27,6 +28,27 @@ interface CartState {
   getTotalPrice: () => number;
 }
 
+// Cart line identity: same product + same variation = same line
+export function getCartLineId(productId: string, variationId?: string | null): string {
+  return `${productId}__${variationId ?? "parent"}`;
+}
+
+// Display name for a cart line / product detail heading:
+// "Product Name [Brown-C Cup]" when a variation is selected, otherwise
+// just "Product Name". Mirrors Laravel's Product::varName accessor.
+export function getDisplayName(productName: string, variationName?: string | null): string {
+  if (!variationName) return productName;
+  return `${productName} [${variationName}]`;
+}
+
+function linePrice(item: CartItem): number {
+  const v = item.variation;
+  if (v) {
+    return v.salePrice ?? v.regularPrice;
+  }
+  return item.product.salePrice ?? item.product.regularPrice;
+}
+
 export const useCartStore = create<CartState>()(
   persist(
     (set, get) => ({
@@ -35,41 +57,48 @@ export const useCartStore = create<CartState>()(
       isOrderModalOpen: false,
       isMobileMenuOpen: false,
       mobileActiveTab: "categories",
-      addItem: (product, quantity = 1) => {
+      addItem: (product, quantity = 1, variation = null) => {
         set((state) => {
+          const lineId = getCartLineId(product.id, variation?.id);
           const existingItem = state.items.find(
-            (item) => item.product.id === product.id
+            (item) => getCartLineId(item.product.id, item.variation?.id) === lineId
           );
-          
-          toast.success(`${product.name} added to cart`, {
+
+          const displayName = getDisplayName(product.name, variation?.name);
+
+          toast.success(`${displayName} added to cart`, {
             description: quantity > 1 ? `${quantity} items added` : undefined,
           });
 
           if (existingItem) {
             return {
               items: state.items.map((item) =>
-                item.product.id === product.id
+                getCartLineId(item.product.id, item.variation?.id) === lineId
                   ? { ...item, quantity: item.quantity + quantity }
                   : item
               ),
-              isDrawerOpen: false, // open drawer on add
+              isDrawerOpen: false,
             };
           }
           return {
-            items: [...state.items, { product, quantity }],
+            items: [...state.items, { product, variation, quantity }],
             isDrawerOpen: false,
           };
         });
       },
-      removeItem: (productId) => {
+      removeItem: (lineId) => {
         set((state) => ({
-          items: state.items.filter((item) => item.product.id !== productId),
+          items: state.items.filter(
+            (item) => getCartLineId(item.product.id, item.variation?.id) !== lineId
+          ),
         }));
       },
-      updateQuantity: (productId, quantity) => {
+      updateQuantity: (lineId, quantity) => {
         set((state) => ({
           items: state.items.map((item) =>
-            item.product.id === productId ? { ...item, quantity } : item
+            getCartLineId(item.product.id, item.variation?.id) === lineId
+              ? { ...item, quantity }
+              : item
           ),
         }));
       },
@@ -85,8 +114,7 @@ export const useCartStore = create<CartState>()(
       },
       getTotalPrice: () => {
         return get().items.reduce(
-          (total, item) =>
-            total + (item.product.salePrice || item.product.regularPrice) * item.quantity,
+          (total, item) => total + linePrice(item) * item.quantity,
           0
         );
       },
