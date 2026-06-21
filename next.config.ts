@@ -46,6 +46,7 @@ const nextConfig: NextConfig = {
       img-src 'self' blob: data: https: http://localhost:8000 http://127.0.0.1:8000;
       font-src 'self' data:;
       connect-src 'self' https://brain.kroymela.com https://www.kroymela.com https://kroymela.com https://static.cloudflareinsights.com http://localhost:8000 http://127.0.0.1:8000;
+      frame-src https://www.youtube.com https://youtube.com;
       object-src 'none';
       frame-ancestors 'none';
     `.replace(/\s{2,}/g, " ").trim();

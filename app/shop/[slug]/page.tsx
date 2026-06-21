@@ -586,7 +586,7 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ slug:
               <div className="text-sm text-dark" dangerouslySetInnerHTML={{ __html: product.description || "This exclusive dress is designed to give you a premium and elegant look. Made from high-quality materials to ensure maximum comfort and durability." }} />
             </AccordionItem>
 
-            <AccordionItem
+            {/* <AccordionItem
               title="Product Video"
               icon={<Video className="w-4 h-4" />}
               isOpen={activeAccordion === "video"}
@@ -595,7 +595,7 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ slug:
               <div className="aspect-video bg-gray-200 rounded flex items-center justify-center text-muted-text">
                 Video Unavailable
               </div>
-            </AccordionItem>
+            </AccordionItem> */}
 
             <AccordionItem
               title="Why Choose Us"
