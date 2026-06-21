@@ -28,7 +28,19 @@ function preloadImage(src: string, highPriority: boolean = false) {
   document.head.appendChild(link);
 }
 
-function ZoomableImage({ src, alt, priority }: { src: string, alt: string, priority?: boolean }) {
+// Warm image cache for gallery images without blocking initial render.
+function lazyPreloadImages(srcs: string[]) {
+  if (typeof window === "undefined" || srcs.length === 0) return;
+  const run = () => srcs.forEach((src) => preloadImage(src, false));
+  // Defer until idle so gallery prefetch never competes with the LCP image.
+  if ("requestIdleCallback" in window) {
+    (window as any).requestIdleCallback(run, { timeout: 2500 });
+  } else {
+    setTimeout(run, 1500);
+  }
+}
+
+function ZoomableImage({ src, alt, priority, loading = "lazy" }: { src: string, alt: string, priority?: boolean, loading?: "eager" | "lazy" }) {
   const [transformOrigin, setTransformOrigin] = useState('50% 50%');
   const [scale, setScale] = useState(1);
   const [isHovering, setIsHovering] = useState(false);
@@ -124,6 +136,7 @@ function ZoomableImage({ src, alt, priority }: { src: string, alt: string, prior
         sizes="(max-width: 1024px) 100vw, 700px"
         quality={85}
         priority={priority}
+        loading={loading}
         className="object-contain"
         style={{
           transformOrigin: displayOrigin,
@@ -174,11 +187,18 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ slug:
         const prod = await getProduct(slug);
         setProduct(prod);
 
-        // Preload all product images into browser cache for instant Swiper display
+        // Resolve all gallery URLs but only preload the FIRST image immediately.
+        // Gallery images load in idle time so they never compete with the LCP image.
         const allImages = prod.images && prod.images.length > 0
           ? prod.images
           : [prod.image, ...(prod.thumbnails || [])];
-        allImages.forEach((img, idx) => preloadImage(img, idx === 0));
+        const mainImage = allImages[0];
+        const galleryImages = allImages.slice(1);
+
+        // High-priority preload for the LCP image only.
+        if (mainImage) preloadImage(mainImage, true);
+        // Lazy preload gallery images so the Swiper thumbs are warm later.
+        lazyPreloadImages(galleryImages);
 
         // Pick a random variation on load (mirrors Laravel's variations->random())
         if (prod.variations && prod.variations.length > 0) {
@@ -340,7 +360,7 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ slug:
             >
               {allImages.map((img, idx) => (
                 <SwiperSlide key={idx} className="relative w-full h-full">
-                  <ZoomableImage src={img} alt={`${product.name || "Product Image"} ${idx}`} priority={idx === 0} />
+                  <ZoomableImage src={img} alt={`${product.name || "Product Image"} ${idx}`} priority={idx === 0} loading={idx === 0 ? "eager" : "lazy"} />
                 </SwiperSlide>
               ))}
             </Swiper>
@@ -377,7 +397,7 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ slug:
               >
                 {allImages.map((img, idx) => (
                   <SwiperSlide key={idx} className="cursor-pointer overflow-hidden rounded border border-transparent opacity-60 hover:opacity-100 transition-opacity [&.swiper-slide-thumb-active]:border-black [&.swiper-slide-thumb-active]:opacity-100 relative bg-gray-100">
-                    <Image src={img} alt={`${product.name || "Product"} thumb ${idx}`} fill sizes="80px" className="object-cover" priority={idx === 0} />
+                    <Image src={img} alt={`${product.name || "Product"} thumb ${idx}`} fill sizes="80px" className="object-cover" priority={idx === 0} loading={idx === 0 ? "eager" : "lazy"} />
                   </SwiperSlide>
                 ))}
               </Swiper>
