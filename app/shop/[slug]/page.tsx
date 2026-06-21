@@ -382,7 +382,7 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ slug:
           <h1 className="text-2xl lg:text-3xl font-bold text-black mb-2 leading-tight">
             {product.name}
             {selectedVariation && (
-              <span className="text-muted-text font-normal text-xl lg:text-2xl">
+              <span className="text-black text-shadow-[1px 1px] font-normal text-xl lg:text-2xl">
                 {" "}[{selectedVariation.name}]
               </span>
             )}
