@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Minus, Plus, ChevronDown, ChevronUp, ShoppingCart, FileText, Video, Share2, ShieldCheck, ChevronLeft, ChevronRight, Star, MessageSquare, CheckCircle, Phone } from "lucide-react";
 import { useCartStore } from "@/store/cart";
 import { ProductCard } from "@/components/product/ProductCard";
-import { getProduct, getRelatedProducts, getProductReviews, submitProductReview, getSettings } from "@/lib/api";
+import { getProduct, getRelatedProducts, getProductReviews, submitProductReview, getSettings, peekProduct } from "@/lib/api";
 import { Product, ProductVariation } from "@/types";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { FreeMode, Navigation, Thumbs, Mousewheel, Keyboard } from "swiper/modules";
@@ -153,10 +153,14 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ slug:
   const { slug } = use(params);
 
   const { addItem, setOrderModalOpen } = useCartStore();
-  const [product, setProduct] = useState<Product | null>(null);
+  // Synchronously hydrate from the client cache (warmed by hover prefetch).
+  // If the data is already in memory, we render the product immediately with
+  // no skeleton and `loading=false`. Otherwise we fall back to the fetch path.
+  const cachedProduct = typeof window !== "undefined" ? peekProduct(slug) : null;
+  const [product, setProduct] = useState<Product | null>(cachedProduct);
   const [settings, setSettings] = useState<any>(null);
-  // Loading only blocks the initial render; secondary data loads in the background.
-  const [loading, setLoading] = useState(true);
+  // Only show the skeleton if the cache was empty on first render.
+  const [loading, setLoading] = useState(cachedProduct == null);
   const [quantity, setQuantity] = useState(1);
   const [activeAccordion, setActiveAccordion] = useState<string>("description");
   const [thumbsSwiper, setThumbsSwiper] = useState<any>(null);
@@ -180,40 +184,50 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ slug:
   const [submittingReview, setSubmittingReview] = useState(false);
   const [reviewMessage, setReviewMessage] = useState({ type: "", text: "" });
 
+  // Helper that sets up variation state from a product (used by both the
+  // cache-hit path and the network-fetch path below).
+  const primeVariationFromProduct = (prod: Product) => {
+    if (prod.variations && prod.variations.length > 0) {
+      const randomIdx = Math.floor(Math.random() * prod.variations.length);
+      const randomVar = prod.variations[randomIdx];
+      setSelectedVariation(randomVar);
+      if (prod.attributes) {
+        const opts: Record<string, number> = {};
+        for (const attr of prod.attributes) {
+          const matched = attr.options.find((o) => randomVar.optionIds.includes(o.id));
+          if (matched) opts[String(attr.id)] = matched.id;
+        }
+        setSelectedOptions(opts);
+      }
+    }
+  };
+
+  // Resolve gallery URLs and warm the browser cache for them.
+  const primeImageCache = (prod: Product) => {
+    const allImages = prod.images && prod.images.length > 0
+      ? prod.images
+      : [prod.image, ...(prod.thumbnails || [])];
+    const mainImage = allImages[0];
+    const galleryImages = allImages.slice(1);
+    if (mainImage) preloadImage(mainImage, true);
+    lazyPreloadImages(galleryImages);
+  };
+
   useEffect(() => {
+    // If we already hydrated from the cache, just prime image cache + state and skip the fetch.
+    if (product) {
+      primeImageCache(product);
+      primeVariationFromProduct(product);
+      return;
+    }
+
     // CRITICAL: fetch product first so the name and main image render ASAP.
     async function fetchCritical() {
       try {
         const prod = await getProduct(slug);
         setProduct(prod);
-
-        // Resolve all gallery URLs but only preload the FIRST image immediately.
-        // Gallery images load in idle time so they never compete with the LCP image.
-        const allImages = prod.images && prod.images.length > 0
-          ? prod.images
-          : [prod.image, ...(prod.thumbnails || [])];
-        const mainImage = allImages[0];
-        const galleryImages = allImages.slice(1);
-
-        // High-priority preload for the LCP image only.
-        if (mainImage) preloadImage(mainImage, true);
-        // Lazy preload gallery images so the Swiper thumbs are warm later.
-        lazyPreloadImages(galleryImages);
-
-        // Pick a random variation on load (mirrors Laravel's variations->random())
-        if (prod.variations && prod.variations.length > 0) {
-          const randomIdx = Math.floor(Math.random() * prod.variations.length);
-          const randomVar = prod.variations[randomIdx];
-          setSelectedVariation(randomVar);
-          if (prod.attributes) {
-            const opts: Record<string, number> = {};
-            for (const attr of prod.attributes) {
-              const matched = attr.options.find((o) => randomVar.optionIds.includes(o.id));
-              if (matched) opts[String(attr.id)] = matched.id;
-            }
-            setSelectedOptions(opts);
-          }
-        }
+        primeImageCache(prod);
+        primeVariationFromProduct(prod);
       } catch (error) {
         console.error("Failed to fetch product:", error);
       } finally {
@@ -221,6 +235,9 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ slug:
       }
     }
     fetchCritical();
+    // We intentionally depend only on `slug`. `product` is read for the cache-hit
+    // short-circuit and should not retrigger the fetch.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug]);
 
   // SECONDARY: fetch reviews, related products, and settings in the background

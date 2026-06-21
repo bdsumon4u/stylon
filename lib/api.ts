@@ -132,6 +132,21 @@ export async function getProduct(slug: string): Promise<Product> {
   return res.data;
 }
 
+/**
+ * Synchronous cache peek — returns the product from the in-memory cache if
+ * available, or null. Use this for instant-render: the page can call this
+ * during render (before useEffect) to avoid the loading skeleton when the
+ * data was already prefetched on hover.
+ */
+export function peekProduct(slug: string): Product | null {
+  if (typeof window === "undefined") return null;
+  const endpoint = `/products/${encodeURIComponent(slug)}`;
+  const hit = clientCache.get(endpoint);
+  if (!hit || Date.now() - hit.timestamp >= CLIENT_CACHE_TTL) return null;
+  // Cache stores the ApiResponse<T> envelope, so we unwrap `data`.
+  return (hit.data as ApiResponse<Product>)?.data ?? null;
+}
+
 export async function getRelatedProducts(slug: string): Promise<Product[]> {
   const res = await fetchApi<ApiResponse<Product[]>>(`/products/${encodeURIComponent(slug)}/related`, {
     useCache: true, tags: ["products", `product:${slug}`], revalidate: 600,

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Product } from "@/types";
 import { useCartStore } from "@/store/cart";
+import { getProduct, getRelatedProducts } from "@/lib/api";
 
 interface ProductCardProps {
   product: Product;
@@ -15,25 +16,38 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
   const router = useRouter();
   const { addItem, setOrderModalOpen } = useCartStore();
 
-  // Prefetch product route and preload images on hover for instant navigation
+  // Prefetch product route, preload images AND warm the API cache on hover
+  // so the product detail page renders instantly with cached data.
   const handleMouseEnter = () => {
-    // Prefetch the route (loads JS bundle + static shell)
+    // Prefetch the route (loads JS bundle + static shell).
     router.prefetch(`/products/${product.slug}`);
-    // Preload images by adding link rel=prefetch hints
+
+    // Warm the client-side API cache by hitting getProduct now. The fetch
+    // result is stored in the clientCache Map inside `lib/api.ts`, so when
+    // the detail page mounts and calls getProduct(slug) it returns from
+    // memory instantly — no skeleton, no loading state.
+    getProduct(product.slug).catch(() => {
+      /* silent — if it fails the detail page will fetch fresh */
+    });
+    getRelatedProducts(product.slug).catch(() => {
+      /* silent */
+    });
+
+    // Preload images by adding link rel=prefetch hints.
     if (product.image) {
-      const link = document.createElement('link');
-      link.rel = 'prefetch';
-      link.as = 'image';
+      const link = document.createElement("link");
+      link.rel = "prefetch";
+      link.as = "image";
       link.href = product.image;
-      link.fetchPriority = 'high';
+      link.fetchPriority = "high";
       document.head.appendChild(link);
     }
-    // Preload thumbnails for instant gallery display
+    // Preload thumbnails for instant gallery display.
     if (product.thumbnails) {
       product.thumbnails.forEach((thumb) => {
-        const link = document.createElement('link');
-        link.rel = 'prefetch';
-        link.as = 'image';
+        const link = document.createElement("link");
+        link.rel = "prefetch";
+        link.as = "image";
         link.href = thumb;
         document.head.appendChild(link);
       });
