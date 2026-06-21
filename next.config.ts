@@ -41,12 +41,12 @@ const nextConfig: NextConfig = {
   async headers() {
     const cspHeader = `
       default-src 'self';
-      script-src 'self' 'unsafe-inline' 'unsafe-eval' https://static.cloudflareinsights.com;
+      script-src 'self' 'unsafe-inline' 'unsafe-eval' https://static.cloudflareinsights.com https://www.googletagmanager.com https://connect.facebook.net https://www.facebook.com;
       style-src 'self' 'unsafe-inline';
-      img-src 'self' blob: data: https: http://localhost:8000 http://127.0.0.1:8000;
+      img-src 'self' blob: data: https: http://localhost:8000 http://127.0.0.1:8000 https://www.googletagmanager.com https://www.facebook.com https://connect.facebook.net;
       font-src 'self' data:;
-      connect-src 'self' https://brain.kroymela.com https://www.kroymela.com https://kroymela.com https://static.cloudflareinsights.com http://localhost:8000 http://127.0.0.1:8000;
-      frame-src https://www.youtube.com https://youtube.com;
+      connect-src 'self' https://brain.kroymela.com https://www.kroymela.com https://kroymela.com https://static.cloudflareinsights.com https://www.googletagmanager.com https://connect.facebook.net https://www.facebook.com http://localhost:8000 http://127.0.0.1:8000;
+      frame-src https://www.youtube.com https://youtube.com https://www.googletagmanager.com https://www.facebook.com;
       object-src 'none';
       frame-ancestors 'none';
     `.replace(/\s{2,}/g, " ").trim();

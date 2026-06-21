@@ -8,6 +8,7 @@ import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
 import { FloatingWidgets } from "@/components/layout/FloatingWidgets";
 import { CartDrawer } from "@/components/cart/CartDrawer";
 import { OrderModalGlobal } from "@/components/checkout/OrderModalGlobal";
+import { TrackingScripts } from "@/components/analytics/TrackingScripts";
 import { getSettings, getMediaUrl } from "@/lib/api";
 import { Toaster } from "sonner";
 
@@ -95,6 +96,7 @@ export default async function RootLayout({
       </head>
       <body className="min-h-full flex flex-col font-sans bg-light-bg text-black pb-16 lg:pb-0" suppressHydrationWarning>
         <Toaster position="top-right" richColors closeButton />
+        <TrackingScripts gtmId={settings?.gtm_id} pixelIds={settings?.pixel_ids} />
         <Header initialSettings={settings} />
         <main className="flex-1">{children}</main>
         <Footer initialSettings={settings} />
