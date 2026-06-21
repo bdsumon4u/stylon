@@ -141,8 +141,8 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ slug:
 
   const { addItem, setOrderModalOpen } = useCartStore();
   const [product, setProduct] = useState<Product | null>(null);
-  const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
   const [settings, setSettings] = useState<any>(null);
+  // Loading only blocks the initial render; secondary data loads in the background.
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
   const [activeAccordion, setActiveAccordion] = useState<string>("description");
@@ -168,20 +168,11 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ slug:
   const [reviewMessage, setReviewMessage] = useState({ type: "", text: "" });
 
   useEffect(() => {
-    async function fetchData() {
+    // CRITICAL: fetch product first so the name and main image render ASAP.
+    async function fetchCritical() {
       try {
-        const [prod, related, reviewsRes, settingsRes] = await Promise.all([
-          getProduct(slug),
-          getRelatedProducts(slug),
-          getProductReviews(slug, 1),
-          getSettings(),
-        ]);
+        const prod = await getProduct(slug);
         setProduct(prod);
-        setRelatedProducts(related);
-        setReviews(reviewsRes.data || []);
-        setHasMoreReviews(reviewsRes.pagination?.current_page < reviewsRes.pagination?.last_page);
-        setReviewsPage(1);
-        setSettings(settingsRes);
 
         // Preload all product images into browser cache for instant Swiper display
         const allImages = prod.images && prod.images.length > 0
@@ -194,7 +185,6 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ slug:
           const randomIdx = Math.floor(Math.random() * prod.variations.length);
           const randomVar = prod.variations[randomIdx];
           setSelectedVariation(randomVar);
-          // Build selectedOptions from the variation's optionIds mapped back to attributeIds
           if (prod.attributes) {
             const opts: Record<string, number> = {};
             for (const attr of prod.attributes) {
@@ -205,13 +195,39 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ slug:
           }
         }
       } catch (error) {
-        console.error("Failed to fetch product data:", error);
+        console.error("Failed to fetch product:", error);
       } finally {
         setLoading(false);
       }
     }
-    fetchData();
+    fetchCritical();
   }, [slug]);
+
+  // SECONDARY: fetch reviews, related products, and settings in the background
+  // without blocking the initial render.
+  useEffect(() => {
+    if (!product) return;
+
+    // Defer slightly so the critical render goes first.
+    const timer = setTimeout(() => {
+      // Reviews (small payload)
+      getProductReviews(slug, 1)
+        .then((res) => {
+          setReviews(res.data || []);
+          setHasMoreReviews(res.pagination?.current_page < res.pagination?.last_page);
+        })
+        .catch((err) => console.error("Failed to fetch reviews:", err));
+
+      // Settings (used in contact box, WhatsApp, Messenger — not blocking)
+      getSettings()
+        .then((s) => setSettings(s))
+        .catch((err) => console.error("Failed to fetch settings:", err));
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, [slug, product?.id]);
+
+  // Related products fetch happens inside LazyRelatedProducts on viewport intersection.
 
   const loadMoreReviews = async () => {
     if (loadingMoreReviews || !hasMoreReviews) return;
@@ -789,9 +805,51 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ slug:
         </div>
       </div>
 
-      {/* Related Products */}
-      {relatedProducts.length > 0 && (
-        <div className="mt-8">
+      {/* Related Products — lazy loaded via intersection observer */}
+      <LazyRelatedProducts slug={slug} />
+    </div>
+  );
+}
+
+// Lazily fetches and renders related products only when the placeholder scrolls
+// into view. This keeps the initial product render fast (1 API call) and avoids
+// loading the related-products API + their images until the user actually
+// scrolls toward them.
+function LazyRelatedProducts({ slug }: { slug: string }) {
+  const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
+  const [loadingRelated, setLoadingRelated] = useState(false);
+  const [hasFetched, setHasFetched] = useState(false);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+
+    // Fetch when the placeholder enters the viewport.
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && !hasFetched) {
+          setLoadingRelated(true);
+          getRelatedProducts(slug)
+            .then((data) => setRelatedProducts(data || []))
+            .catch((err) => console.error("Failed to fetch related products:", err))
+            .finally(() => {
+              setLoadingRelated(false);
+              setHasFetched(true);
+            });
+        }
+      },
+      { rootMargin: "300px" } // start loading slightly before user reaches it
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [slug, hasFetched]);
+
+  return (
+    <div ref={sentinelRef} className="mt-8 min-h-[200px]">
+      {relatedProducts.length > 0 ? (
+        <>
           <div className="mb-8 relative">
             <h2 className="text-xl lg:text-2xl font-bold text-black border-l-4 border-primary pl-3">
               <span className="text-primary text-xs tracking-wider block mb-1 uppercase">PRODUCTS</span>
@@ -803,8 +861,17 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ slug:
               <ProductCard key={related.id} product={related} priority={idx < 4} />
             ))}
           </div>
+        </>
+      ) : loadingRelated ? (
+        <div>
+          <div className="mb-8 h-7 w-48 bg-gray-200 rounded animate-pulse" />
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4 lg:gap-5">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="bg-gray-200 rounded-lg aspect-[4/5] animate-pulse" />
+            ))}
+          </div>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }
