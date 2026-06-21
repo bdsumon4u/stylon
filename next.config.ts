@@ -15,19 +15,12 @@ const nextConfig: NextConfig = {
   },
 
   images: {
-    // Enable Next.js optimisation: serves AVIF → WebP → original.
-    // `sharp` is already installed so the optimizer is active in production.
-    formats: ["image/avif", "image/webp"],
-
-    // Cache optimised images on disk for at least 24 h.
-    minimumCacheTTL: 86400,
-
-    // Allowed quality values (must list every value used across the codebase).
-    qualities: [75, 85],
-
-    // Responsive srcSet breakpoints.
-    deviceSizes: [320, 480, 640, 750, 828, 1080, 1200, 1920],
-    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    // Disable Next.js image optimization to serve images as-is from the source.
+    // This avoids the Vercel free plan image optimization limit and removes
+    // the `/_next/image` re-encoding latency — images load directly from the
+    // origin (which Laravel/CDN caches aggressively). Re-enable by removing
+    // this flag and restoring the `formats`/`qualities` block below.
+    unoptimized: true,
 
     remotePatterns: [
       { protocol: "http",  hostname: "localhost",  port: "8000", pathname: "/**" },
@@ -85,16 +78,6 @@ const nextConfig: NextConfig = {
           {
             key: "Cache-Control",
             value: "public, max-age=31536000, immutable",
-          },
-        ],
-      },
-      // 24-hour cache for optimised images with one-week SWR window.
-      {
-        source: "/_next/image(.*)",
-        headers: [
-          {
-            key: "Cache-Control",
-            value: "public, max-age=86400, s-maxage=86400, stale-while-revalidate=604800",
           },
         ],
       },
