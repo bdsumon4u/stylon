@@ -1,5 +1,8 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Product } from "@/types";
 import { useCartStore } from "@/store/cart";
 
@@ -9,7 +12,33 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product, priority = false }: ProductCardProps) {
+  const router = useRouter();
   const { addItem, setOrderModalOpen } = useCartStore();
+
+  // Prefetch product route and preload images on hover for instant navigation
+  const handleMouseEnter = () => {
+    // Prefetch the route (loads JS bundle + static shell)
+    router.prefetch(`/products/${product.slug}`);
+    // Preload images by adding link rel=prefetch hints
+    if (product.image) {
+      const link = document.createElement('link');
+      link.rel = 'prefetch';
+      link.as = 'image';
+      link.href = product.image;
+      link.fetchPriority = 'high';
+      document.head.appendChild(link);
+    }
+    // Preload thumbnails for instant gallery display
+    if (product.thumbnails) {
+      product.thumbnails.forEach((thumb) => {
+        const link = document.createElement('link');
+        link.rel = 'prefetch';
+        link.as = 'image';
+        link.href = thumb;
+        document.head.appendChild(link);
+      });
+    }
+  };
 
   const handleOrderNow = (e: React.MouseEvent) => {
     e.preventDefault(); // Prevent navigating to the product page when clicking the button
@@ -20,15 +49,18 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
   // Use real rating and review count from the product object
   const rating = product.averageRating > 0 ? product.averageRating.toFixed(1) : "5.0";
   const reviewsCount = product.reviewsCount || 0;
-  
+
   // Deterministic fake sold count as requested
   const numericId = parseInt(product.id) || 1234;
   const soldCount = (numericId % 500) + 100;
 
   return (
-    <div className="bg-[#f4f7fb] rounded-lg overflow-hidden flex flex-col group h-full transition-all hover:shadow-md">
+    <div
+      className="bg-[#f4f7fb] rounded-lg overflow-hidden flex flex-col group h-full transition-all hover:shadow-md"
+      onMouseEnter={handleMouseEnter}
+    >
       {/* Image Container */}
-      <Link href={`/products/${product.slug}`} prefetch={true} className="relative block bg-white overflow-hidden">
+      <Link href={`/products/${product.slug}`} prefetch={false} className="relative block bg-white overflow-hidden">
         <Image
           src={product.image}
           alt={product.name || "Product Image"}
@@ -62,7 +94,7 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
       </Link>
 
       {/* Content */}
-      <Link href={`/products/${product.slug}`} prefetch={true} className="p-3 pb-4 flex flex-col flex-1">
+      <Link href={`/products/${product.slug}`} prefetch={false} className="p-3 pb-4 flex flex-col flex-1">
         <h3 className="text-gray-900 font-medium text-[13px] md:text-[14.5px] leading-snug line-clamp-2 h-[40px] group-hover:text-primary transition-colors">
           {product.name}
         </h3>

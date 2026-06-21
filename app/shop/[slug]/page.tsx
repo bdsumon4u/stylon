@@ -17,6 +17,17 @@ import "swiper/css/free-mode";
 import "swiper/css/navigation";
 import "swiper/css/thumbs";
 
+// Preload images into the browser cache so they're instant when Swiper displays them
+function preloadImage(src: string, highPriority: boolean = false) {
+  if (typeof window === "undefined" || !src) return;
+  const link = document.createElement("link");
+  link.rel = "prefetch";
+  link.as = "image";
+  link.href = src;
+  if (highPriority) link.fetchPriority = "high";
+  document.head.appendChild(link);
+}
+
 function ZoomableImage({ src, alt, priority }: { src: string, alt: string, priority?: boolean }) {
   const [transformOrigin, setTransformOrigin] = useState('50% 50%');
   const [scale, setScale] = useState(1);
@@ -171,6 +182,12 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ slug:
         setHasMoreReviews(reviewsRes.pagination?.current_page < reviewsRes.pagination?.last_page);
         setReviewsPage(1);
         setSettings(settingsRes);
+
+        // Preload all product images into browser cache for instant Swiper display
+        const allImages = prod.images && prod.images.length > 0
+          ? prod.images
+          : [prod.image, ...(prod.thumbnails || [])];
+        allImages.forEach((img, idx) => preloadImage(img, idx === 0));
 
         // Pick a random variation on load (mirrors Laravel's variations->random())
         if (prod.variations && prod.variations.length > 0) {
