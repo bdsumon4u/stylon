@@ -8,6 +8,7 @@ import { Trash2, Plus, Minus, Loader2 } from "lucide-react";
 import { getSettings, placeOrder } from "@/lib/api";
 import { useRouter } from "next/navigation";
 import { saveThankYouOrder, buildThankYouOrder } from "@/lib/order-storage";
+import { trackInitiateCheckout, trackPurchase } from "@/lib/analytics";
 
 // Animated Heading Component for Note Area
 const AnimatedHeading = () => {
@@ -61,9 +62,24 @@ export default function CheckoutPage() {
   }, []);
 
   const shippingCost = shippingOption === "inside" ? shippingRates.inside : shippingRates.outside;
-  
+
   const totalPrice = getTotalPrice();
   const grandTotal = totalPrice + shippingCost;
+
+  // Fire InitiateCheckout once per page mount when there are items.
+  // Page mount = user landed on /checkout = checkout flow started.
+  useEffect(() => {
+    if (!mounted) return;
+    if (items.length === 0) return;
+    trackInitiateCheckout(
+      items,
+      shippingCost,
+      shippingOption === "inside" ? "Inside Dhaka" : "Outside Dhaka",
+    );
+    // Intentionally only depend on mount — shippingOption can change inside
+    // the form without re-firing the begin_checkout event.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mounted]);
 
   const handleSubmit = async () => {
     setError("");
@@ -103,6 +119,26 @@ export default function CheckoutPage() {
           price: unitPrice,
           subtotal: unitPrice * item.quantity,
         };
+      });
+
+      // Fire Purchase event to FB Pixel + GTM dataLayer before clearing the
+      // cart. Done immediately so the event isn't lost on route navigation.
+      trackPurchase({
+        orderId: res.order.id,
+        total: res.order.total,
+        shipping: shippingCost,
+        shippingArea: shippingOption === "inside" ? "Inside Dhaka" : "Outside Dhaka",
+        customer: {
+          name: name.trim(),
+          phone: phone.trim(),
+          address: address.trim(),
+        },
+        items: orderItems.map((oi) => ({
+          id: oi.id,
+          name: oi.name,
+          quantity: oi.quantity,
+          price: oi.price,
+        })),
       });
 
       saveThankYouOrder(

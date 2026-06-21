@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { X, Minus, Plus, Trash2, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCartStore, getCartLineId, getDisplayName } from "@/store/cart";
 import { placeOrder, getSettings } from "@/lib/api";
 import { saveThankYouOrder, buildThankYouOrder } from "@/lib/order-storage";
+import { trackInitiateCheckout, trackPurchase } from "@/lib/analytics";
 
 interface OrderModalProps {
   isOpen: boolean;
@@ -49,8 +50,13 @@ export function OrderModal({ isOpen, onClose }: OrderModalProps) {
   const [error, setError] = useState("");
   const [shippingRates, setShippingRates] = useState({ inside: 80, outside: 150 });
 
+  // Track InitiateCheckout once per modal-open transition (not on every re-render
+  // and not when the user re-opens after closing without submitting).
+  const initiatedForRef = useRef(false);
+
   useEffect(() => {
     if (isOpen) {
+      initiatedForRef.current = false;
       getSettings().then(settings => {
         if (settings?.delivery_charge) {
           setShippingRates({
@@ -63,11 +69,24 @@ export function OrderModal({ isOpen, onClose }: OrderModalProps) {
   }, [isOpen]);
 
   const shippingCost = shippingOption === "inside" ? shippingRates.inside : shippingRates.outside;
-  
+
   if (!isOpen) return null;
 
   const totalPrice = getTotalPrice();
   const grandTotal = totalPrice + shippingCost;
+
+  // Fire InitiateCheckout once per modal-open transition, only when there are
+  // items to check out. Runs client-side only; analytics helper is SSR-safe.
+  useEffect(() => {
+    if (!isOpen || initiatedForRef.current) return;
+    if (items.length === 0) return;
+    initiatedForRef.current = true;
+    trackInitiateCheckout(
+      items,
+      shippingCost,
+      shippingOption === "inside" ? "Inside Dhaka" : "Outside Dhaka",
+    );
+  }, [isOpen, items, shippingCost, shippingOption]);
 
   const handleSubmit = async () => {
     setError("");
@@ -106,6 +125,26 @@ export function OrderModal({ isOpen, onClose }: OrderModalProps) {
           price: unitPrice,
           subtotal: unitPrice * item.quantity,
         };
+      });
+
+      // Fire Purchase event to FB Pixel + GTM dataLayer before clearing the
+      // cart. Done immediately so the event isn't lost on route navigation.
+      trackPurchase({
+        orderId: res.order.id,
+        total: res.order.total,
+        shipping: shippingCost,
+        shippingArea: shippingOption === "inside" ? "Inside Dhaka" : "Outside Dhaka",
+        customer: {
+          name: name.trim(),
+          phone: phone.trim(),
+          address: address.trim(),
+        },
+        items: orderItems.map((oi) => ({
+          id: oi.id,
+          name: oi.name,
+          quantity: oi.quantity,
+          price: oi.price,
+        })),
       });
 
       saveThankYouOrder(

@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { Product, ProductVariation } from "@/types";
 import { toast } from "sonner";
+import { trackAddToCart } from "@/lib/analytics";
 
 export interface CartItem {
   product: Product;
@@ -85,6 +86,10 @@ export const useCartStore = create<CartState>()(
             isDrawerOpen: false,
           };
         });
+
+        // Fire AddToCart event AFTER state is committed so window.fbq / dataLayer
+        // see the latest value. SSR-safe: no-ops when pixel isn't loaded yet.
+        trackAddToCart(product, quantity, variation);
       },
       removeItem: (lineId) => {
         set((state) => ({
