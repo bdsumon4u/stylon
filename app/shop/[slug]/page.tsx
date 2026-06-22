@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Minus, Plus, ChevronDown, ChevronUp, ShoppingCart, FileText, Video, Share2, ShieldCheck, ChevronLeft, ChevronRight, Star, MessageSquare, CheckCircle, Phone } from "lucide-react";
 import { useCartStore } from "@/store/cart";
-import { ProductCard } from "@/components/product/ProductCard";
+import { ProductCard, consumeProductHandoff } from "@/components/product/ProductCard";
 import { getProduct, getRelatedProducts, getProductReviews, submitProductReview, getSettings, peekProduct } from "@/lib/api";
 import { Product, ProductVariation } from "@/types";
 import { Swiper, SwiperSlide } from "swiper/react";
@@ -153,14 +153,22 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ slug:
   const { slug } = use(params);
 
   const { addItem, setOrderModalOpen } = useCartStore();
-  // Synchronously hydrate from the client cache (warmed by hover prefetch).
-  // If the data is already in memory, we render the product immediately with
-  // no skeleton and `loading=false`. Otherwise we fall back to the fetch path.
-  const cachedProduct = typeof window !== "undefined" ? peekProduct(slug) : null;
-  const [product, setProduct] = useState<Product | null>(cachedProduct);
+  // Synchronously hydrate from the client cache (warmed by hover prefetch) or
+  // from the sessionStorage handoff (written by ProductCard/SearchDropdown on
+  // click). If the data is already in memory, we render the product
+  // immediately with no skeleton and `loading=false`. Otherwise we fall back
+  // to the fetch path.
+  const hydratedProduct = (() => {
+    if (typeof window === "undefined") return null;
+    // Handoff wins because it is the freshest, click-time data.
+    const handoff = consumeProductHandoff(slug);
+    if (handoff) return handoff;
+    return peekProduct(slug);
+  })();
+  const [product, setProduct] = useState<Product | null>(hydratedProduct);
   const [settings, setSettings] = useState<any>(null);
-  // Only show the skeleton if the cache was empty on first render.
-  const [loading, setLoading] = useState(cachedProduct == null);
+  // Only show the skeleton if no cache/handoff was available on first render.
+  const [loading, setLoading] = useState(hydratedProduct == null);
   const [quantity, setQuantity] = useState(1);
   const [activeAccordion, setActiveAccordion] = useState<string>("description");
   const [thumbsSwiper, setThumbsSwiper] = useState<any>(null);
@@ -214,14 +222,24 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ slug:
   };
 
   useEffect(() => {
-    // If we already hydrated from the cache, just prime image cache + state and skip the fetch.
-    if (product) {
-      primeImageCache(product);
-      primeVariationFromProduct(product);
+    // On every slug change, attempt to re-hydrate from handoff / in-memory
+    // cache. If we have data for THIS slug, render immediately. Otherwise
+    // fall back to the network fetch.
+    let fresh: Product | null = null;
+    if (typeof window !== "undefined") {
+      fresh = consumeProductHandoff(slug) ?? peekProduct(slug);
+    }
+
+    if (fresh) {
+      setProduct(fresh);
+      setLoading(false);
+      primeImageCache(fresh);
+      primeVariationFromProduct(fresh);
       return;
     }
 
     // CRITICAL: fetch product first so the name and main image render ASAP.
+    setLoading(true);
     async function fetchCritical() {
       try {
         const prod = await getProduct(slug);
@@ -235,8 +253,7 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ slug:
       }
     }
     fetchCritical();
-    // We intentionally depend only on `slug`. `product` is read for the cache-hit
-    // short-circuit and should not retrigger the fetch.
+    // We intentionally depend only on `slug`.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug]);
 

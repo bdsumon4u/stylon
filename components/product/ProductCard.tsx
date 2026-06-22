@@ -7,6 +7,36 @@ import { Product } from "@/types";
 import { useCartStore } from "@/store/cart";
 import { getProduct, getRelatedProducts } from "@/lib/api";
 
+// ─── sessionStorage helpers ─────────────────────────────────────────────────
+// We use sessionStorage as a synchronous handoff between the card and the
+// detail page. When the user clicks a card, we stash the (already-loaded)
+// product data so the detail page can render it in the first frame with no
+// skeleton, no API wait. Cleared on next visit so we always re-fetch in the
+// background and stay fresh.
+
+const PRODUCT_KEY = (slug: string) => `product:handoff:${slug}`;
+
+export function stashProductForHandoff(product: Product) {
+  if (typeof window === "undefined") return;
+  try {
+    sessionStorage.setItem(PRODUCT_KEY(product.slug), JSON.stringify(product));
+  } catch {
+    /* private mode / quota — silently skip */
+  }
+}
+
+export function consumeProductHandoff(slug: string): Product | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = sessionStorage.getItem(PRODUCT_KEY(slug));
+    if (!raw) return null;
+    sessionStorage.removeItem(PRODUCT_KEY(slug));
+    return JSON.parse(raw) as Product;
+  } catch {
+    return null;
+  }
+}
+
 interface ProductCardProps {
   product: Product;
   priority?: boolean;
@@ -60,6 +90,12 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
     setOrderModalOpen(true);
   };
 
+  // Stash the product data so the detail page can render it instantly
+  // without any skeleton.
+  const handleClick = () => {
+    stashProductForHandoff(product);
+  };
+
   // Use real rating and review count from the product object
   const rating = product.averageRating > 0 ? product.averageRating.toFixed(1) : "5.0";
   const reviewsCount = product.reviewsCount || 0;
@@ -74,7 +110,7 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
       onMouseEnter={handleMouseEnter}
     >
       {/* Image Container */}
-      <Link href={`/products/${product.slug}`} prefetch={false} className="relative block bg-white overflow-hidden">
+      <Link href={`/products/${product.slug}`} prefetch={false} onClick={handleClick} className="relative block bg-white overflow-hidden">
         <Image
           src={product.image}
           alt={product.name || "Product Image"}
@@ -108,7 +144,7 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
       </Link>
 
       {/* Content */}
-      <Link href={`/products/${product.slug}`} prefetch={false} className="p-3 pb-4 flex flex-col flex-1">
+      <Link href={`/products/${product.slug}`} prefetch={false} onClick={handleClick} className="p-3 pb-4 flex flex-col flex-1">
         <h3 className="text-gray-900 font-medium text-[13px] md:text-[14.5px] leading-snug line-clamp-2 h-[40px] group-hover:text-primary transition-colors">
           {product.name}
         </h3>

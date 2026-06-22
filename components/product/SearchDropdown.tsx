@@ -4,9 +4,11 @@ import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Search } from "lucide-react";
-import { searchProducts } from "@/lib/api";
+import { useCartStore } from "@/store/cart";
+import { searchProducts, getProduct } from "@/lib/api";
 import { Product } from "@/types";
 import { cn } from "@/lib/utils";
+import { stashProductForHandoff } from "@/components/product/ProductCard";
 
 export function SearchDropdown({ onClose }: { onClose?: () => void }) {
   const [query, setQuery] = useState("");
@@ -67,14 +69,22 @@ export function SearchDropdown({ onClose }: { onClose?: () => void }) {
             <div className="px-4 py-3 text-sm text-muted-text text-center">Searching...</div>
           ) : (
             results.map(product => (
-              <Link 
-                href={`/shop/${product.slug}`} 
+              <Link
+                href={`/shop/${product.slug}`}
                 key={product.id}
                 className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-none"
+                onMouseEnter={() => {
+                  // Warm the in-memory client cache so the detail page can
+                  // render immediately with no skeleton.
+                  getProduct(product.slug).catch(() => {});
+                }}
                 onClick={() => {
                   setIsOpen(false);
                   setQuery("");
                   onClose?.();
+                  // Hand off the full product so the detail page can render
+                  // it instantly in the first frame.
+                  stashProductForHandoff(product);
                 }}
               >
                 <div className="w-14 h-18 bg-gray-100 rounded relative overflow-hidden shrink-0 border border-border-color">
