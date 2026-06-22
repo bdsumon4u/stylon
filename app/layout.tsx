@@ -105,17 +105,19 @@ export default async function RootLayout({
         <CartDrawer />
         <OrderModalGlobal />
 
-        {/* Service Worker Registration — deferred to window load so it never blocks first paint. */}
+        {/* Unregister any existing service worker from previous deployments. */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
               if ('serviceWorker' in navigator) {
-                window.addEventListener('load', function() {
-                  navigator.serviceWorker.register('/sw.js').then(
-                    function(reg) { console.log('SW registered:', reg.scope); },
-                    function(err) { console.log('SW registration failed:', err); }
-                  );
+                navigator.serviceWorker.getRegistrations().then(function(regs) {
+                  regs.forEach(function(r) { r.unregister(); });
                 });
+                if ('caches' in window) {
+                  caches.keys().then(function(keys) {
+                    keys.forEach(function(k) { caches.delete(k); });
+                  });
+                }
               }
             `,
           }}
