@@ -9,6 +9,7 @@ import { getSettings, placeOrder } from "@/lib/api";
 import { useRouter } from "next/navigation";
 import { saveThankYouOrder, buildThankYouOrder } from "@/lib/order-storage";
 import { trackInitiateCheckout, trackPurchase } from "@/lib/analytics";
+import { useCheckoutTracker } from "@/lib/checkout-tracking";
 
 // Animated Heading Component for Note Area
 const AnimatedHeading = () => {
@@ -48,9 +49,11 @@ export default function CheckoutPage() {
   
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const { registerCheckoutInteractions } = useCheckoutTracker();
 
   useEffect(() => {
     setMounted(true);
+    registerCheckoutInteractions();
     getSettings().then(settings => {
       if (settings?.delivery_charge) {
         setShippingRates({
@@ -302,7 +305,8 @@ export default function CheckoutPage() {
           {/* Note Area */}
           <div className="mt-8 p-4 shadow-sm bg-[#fffdf7]">
             <AnimatedHeading />
-            <textarea 
+            <textarea
+              name="checkout-note"
               rows={4}
               value={note}
               onChange={(e) => setNote(e.target.value)}
@@ -328,22 +332,24 @@ export default function CheckoutPage() {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-bold mb-1">নাম :</label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
+                  name="checkout-name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="এখানে নাম লিখুন..." 
+                  placeholder="এখানে নাম লিখুন..."
                   className="w-full border border-border-color rounded px-3 py-2 text-sm focus:border-primary outline-none"
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-bold mb-1">ঠিকানা :</label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
+                  name="checkout-address"
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
-                  placeholder="বাসা নং, রোড নং, থানা/উপজেলা, জেলা" 
+                  placeholder="বাসা নং, রোড নং, থানা/উপজেলা, জেলা"
                   className="w-full border border-border-color rounded px-3 py-2 text-sm focus:border-primary outline-none"
                 />
               </div>
@@ -352,6 +358,7 @@ export default function CheckoutPage() {
                 <label className="block text-sm font-bold mb-1">মোবাইল নাম্বার :</label>
                 <input
                   type="tel"
+                  name="checkout-phone"
                   inputMode="numeric"
                   pattern="[0-9]*"
                   value={phone}
@@ -406,7 +413,8 @@ export default function CheckoutPage() {
                 </div>
               </div>
 
-              <button 
+              <button
+                data-place-order
                 onClick={handleSubmit}
                 disabled={submitting || items.length === 0}
                 className="w-full bg-[#00e5ff] text-white font-bold text-lg py-3 rounded mt-6 hover:bg-[#00d0eb] transition-colors shadow-md disabled:opacity-50 flex items-center justify-center gap-2"

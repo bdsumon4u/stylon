@@ -8,6 +8,7 @@ import { useCartStore, getCartLineId, getDisplayName } from "@/store/cart";
 import { placeOrder, getSettings } from "@/lib/api";
 import { saveThankYouOrder, buildThankYouOrder } from "@/lib/order-storage";
 import { trackInitiateCheckout, trackPurchase } from "@/lib/analytics";
+import { useCheckoutTracker } from "@/lib/checkout-tracking";
 
 interface OrderModalProps {
   isOpen: boolean;
@@ -49,6 +50,7 @@ export function OrderModal({ isOpen, onClose }: OrderModalProps) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [shippingRates, setShippingRates] = useState({ inside: 80, outside: 150 });
+  const { registerCheckoutInteractions } = useCheckoutTracker();
 
   // Track InitiateCheckout once per modal-open transition (not on every re-render
   // and not when the user re-opens after closing without submitting).
@@ -57,6 +59,7 @@ export function OrderModal({ isOpen, onClose }: OrderModalProps) {
   useEffect(() => {
     if (isOpen) {
       initiatedForRef.current = false;
+      registerCheckoutInteractions();
       getSettings().then(settings => {
         if (settings?.delivery_charge) {
           setShippingRates({
@@ -206,9 +209,10 @@ export function OrderModal({ isOpen, onClose }: OrderModalProps) {
             )}
             <div>
               <label className="block text-sm font-bold mb-1 text-black">নাম <span className="text-red-500">*</span></label>
-              <input 
-                type="text" 
-                placeholder="এখানে নাম লিখুন..." 
+              <input
+                type="text"
+                name="checkout-name"
+                placeholder="এখানে নাম লিখুন..."
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="w-full border border-border-color rounded px-3 py-2 text-sm focus:border-primary outline-none"
@@ -218,6 +222,7 @@ export function OrderModal({ isOpen, onClose }: OrderModalProps) {
               <label className="block text-sm font-bold mb-1 text-black">মোবাইল নাম্বার <span className="text-red-500">*</span></label>
               <input
                 type="tel"
+                name="checkout-phone"
                 inputMode="numeric"
                 pattern="[0-9]*"
                 placeholder="মোবাইল নম্বর..."
@@ -228,9 +233,10 @@ export function OrderModal({ isOpen, onClose }: OrderModalProps) {
             </div>
             <div>
               <label className="block text-sm font-bold mb-1 text-black">ঠিকানা <span className="text-red-500">*</span></label>
-              <input 
-                type="text" 
-                placeholder="বাসা নং, রোড নং, থানা/উপজেলা, জেলা" 
+              <input
+                type="text"
+                name="checkout-address"
+                placeholder="বাসা নং, রোড নং, থানা/উপজেলা, জেলা"
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
                 className="w-full border border-border-color rounded px-3 py-2 text-sm focus:border-primary outline-none"
@@ -238,7 +244,8 @@ export function OrderModal({ isOpen, onClose }: OrderModalProps) {
             </div>
             <div>
               <AnimatedHeading />
-              <textarea 
+              <textarea
+                name="checkout-note"
                 rows={3}
                 placeholder="দয়া করে আপনার অর্ডারের জন্য যে কোন বিশেষ নির্দেশিকা বা পছন্দের সাইজ/কালার এখানে বলতে পারেন।"
                 value={note}
@@ -365,7 +372,8 @@ export function OrderModal({ isOpen, onClose }: OrderModalProps) {
                 <span className="text-black">Total</span>
                 <span className="text-sale-red">{grandTotal} Tk</span>
               </div>
-              <button 
+              <button
+                data-place-order
                 className="w-full bg-primary hover:bg-primary-dark text-white font-bold py-3 rounded mt-2 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
                 disabled={items.length === 0 || submitting}
                 onClick={handleSubmit}
