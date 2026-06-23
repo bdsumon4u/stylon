@@ -57,6 +57,12 @@ export function SearchDropdown({ onClose }: { onClose?: () => void }) {
           placeholder="search products..."
           value={query}
           onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              handleClick();
+            }
+          }}
           onFocus={() => query.length >= 2 && results.length > 0 && setIsOpen(true)}
           className="flex-1 border border-border-color border-r-0 rounded-l-full py-2.5 px-5 outline-none focus:border-primary transition-all text-sm bg-white"
         />
