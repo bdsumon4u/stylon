@@ -41,6 +41,11 @@ async function fetchApi<T>(endpoint: string, options?: FetchApiOptions): Promise
 
   const url = `${API_BASE}${endpoint}`;
 
+  // Set timeout: 5s on server (avoid holding up SSR), 8s on client.
+  const timeoutMs = isClient ? 8000 : 5000;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
   // Build fetch init. The `next` property is a Next.js extension understood
   // server-side (activates the Data Cache). Browsers silently ignore unknown
   // keys in the options object, so this is safe to pass unconditionally.
@@ -48,6 +53,7 @@ async function fetchApi<T>(endpoint: string, options?: FetchApiOptions): Promise
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const init: any = {
     ...options,
+    signal: controller.signal,
     headers: {
       "Content-Type": "application/json",
       Accept: "application/json",
@@ -62,21 +68,30 @@ async function fetchApi<T>(endpoint: string, options?: FetchApiOptions): Promise
     };
   }
 
-  const res = await fetch(url, init);
+  try {
+    const res = await fetch(url, init);
+    clearTimeout(timeoutId);
 
-  if (!res.ok) {
-    const error = await res.json().catch(() => ({ message: res.statusText }));
-    throw new Error(error.message || `API Error: ${res.status}`);
+    if (!res.ok) {
+      const error = await res.json().catch(() => ({ message: res.statusText }));
+      throw new Error(error.message || `API Error: ${res.status}`);
+    }
+
+    const data: T = await res.json();
+
+    // ── Client-side cache write ───────────────────────────────────────────────
+    if (isClient && isCacheable) {
+      clientCache.set(endpoint, { data, timestamp: Date.now() });
+    }
+
+    return data;
+  } catch (error: any) {
+    clearTimeout(timeoutId);
+    if (error.name === "AbortError") {
+      throw new Error(`Request timed out after ${timeoutMs}ms`);
+    }
+    throw error;
   }
-
-  const data: T = await res.json();
-
-  // ── Client-side cache write ───────────────────────────────────────────────
-  if (isClient && isCacheable) {
-    clientCache.set(endpoint, { data, timestamp: Date.now() });
-  }
-
-  return data;
 }
 
 // ─── Categories ──────────────────────────────────────────────────────────────

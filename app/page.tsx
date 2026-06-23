@@ -24,15 +24,29 @@ export default function Home() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const [cats, allSlides, sectionsData] = await Promise.all([
+        const [catsResult, slidesResult, sectionsResult] = await Promise.allSettled([
           getCategories(),
           getSlides(),
           getHomeSections(),
         ]);
         
-        setCategories(cats);
-        setSlides(allSlides);
-        setHomeSections(sectionsData);
+        if (catsResult.status === "fulfilled") {
+          setCategories(catsResult.value);
+        } else {
+          console.error("Failed to fetch categories:", catsResult.reason);
+        }
+
+        if (slidesResult.status === "fulfilled") {
+          setSlides(slidesResult.value);
+        } else {
+          console.error("Failed to fetch slides:", slidesResult.reason);
+        }
+
+        if (sectionsResult.status === "fulfilled") {
+          setHomeSections(sectionsResult.value);
+        } else {
+          console.error("Failed to fetch home sections:", sectionsResult.reason);
+        }
       } catch (error) {
         console.error("Failed to fetch home data:", error);
       } finally {
