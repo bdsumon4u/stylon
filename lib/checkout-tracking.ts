@@ -3,8 +3,12 @@
  * a user navigates away or closes the tab mid-checkout, the data is preserved
  * server-side for later recovery or analytics.
  *
- * Mirrors the Livewire pattern: sends name, phone, address on every change
- * and also on beforeunload / place-order click.
+ * Uses multiple events for maximum coverage across browsers:
+ * - `pagehide` fires when the page is discarded (tab switch, close, bfcache)
+ * - `beforeunload` fires on navigation/close (some browsers)
+ * - `visibilitychange` + `document.willBeDiscarded` (Page Lifecycle API)
+ * - `blur` fires when the window loses focus (tab switch, alt+tab)
+ * - `data-place-order` button click fires before form submission
  */
 
 let handlerAttached = false;
@@ -40,9 +44,28 @@ function registerCheckoutInteractions() {
   if (handlerAttached) return;
   handlerAttached = true;
 
-  // Save on beforeunload (only safe on checkout pages)
-  const beforeUnloadHandler = () => sendCheckoutProgress();
-  window.addEventListener("beforeunload", beforeUnloadHandler, { passive: false });
+  // pagehide — fires when the page is removed from history (bfcache, tab switch, close)
+  // This is the most reliable event for tab-switch tracking in modern browsers.
+  window.addEventListener("pagehide", sendCheckoutProgress, { passive: true });
+
+  // beforeunload — fallback for older browsers / some edge cases
+  window.addEventListener("beforeunload", sendCheckoutProgress, { passive: true });
+
+  // visibilitychange + willBeDiscarded — Page Lifecycle API
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") {
+      // Only send if the page is about to be discarded (not just minimizing)
+      if ((document as any).willBeDiscarded) {
+        sendCheckoutProgress();
+      } else {
+        // Fallback: send anyway — the server can deduplicate
+        sendCheckoutProgress();
+      }
+    }
+  });
+
+  // blur — fires when the window loses focus (alt+tab, window switch)
+  window.addEventListener("blur", sendCheckoutProgress, { passive: true });
 
   // Save when the user clicks the place-order button
   document.querySelectorAll("[data-place-order]").forEach((button) => {

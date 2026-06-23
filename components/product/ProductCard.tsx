@@ -85,7 +85,8 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
   };
 
   const handleOrderNow = (e: React.MouseEvent) => {
-    e.preventDefault(); // Prevent navigating to the product page when clicking the button
+    e.preventDefault();
+    e.stopPropagation(); // Prevent event bubbling to parent <Link>
     addItem(product, 1);
     setOrderModalOpen(true);
   };
