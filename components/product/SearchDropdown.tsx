@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Search } from "lucide-react";
@@ -9,6 +8,7 @@ import { searchProducts, getProduct } from "@/lib/api";
 import { Product } from "@/types";
 import { cn } from "@/lib/utils";
 import { stashProductForHandoff } from "@/components/product/ProductCard";
+import { useRouter } from "next/navigation";
 
 export function SearchDropdown({ onClose }: { onClose?: () => void }) {
   const [query, setQuery] = useState("");
@@ -17,6 +17,7 @@ export function SearchDropdown({ onClose }: { onClose?: () => void }) {
   const [loading, setLoading] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
     if (query.length < 2) {
@@ -24,10 +25,7 @@ export function SearchDropdown({ onClose }: { onClose?: () => void }) {
       setIsOpen(false);
       return;
     }
-
     setLoading(true);
-
-    // Debounce API calls
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(async () => {
       try {
@@ -41,28 +39,35 @@ export function SearchDropdown({ onClose }: { onClose?: () => void }) {
         setLoading(false);
       }
     }, 300);
-
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
   }, [query]);
 
+  const handleClick = () => {
+    router.push(`/shop?search=${encodeURIComponent(query)}`);
+    setIsOpen(false);
+    setQuery("");
+  };
+
   return (
     <div className="relative w-full" ref={dropdownRef}>
       <div className="flex w-full group">
-        <input 
-          type="text" 
-          placeholder="search products..." 
+        <input
+          type="text"
+          placeholder="search products..."
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => query.length >= 2 && results.length > 0 && setIsOpen(true)}
           className="flex-1 border border-border-color border-r-0 rounded-l-full py-2.5 px-5 outline-none focus:border-primary transition-all text-sm bg-white"
         />
-        <button className="bg-primary text-white px-5 rounded-r-full flex items-center justify-center hover:bg-black transition-all shrink-0 border border-primary border-l-0">
+        <button
+          className="bg-primary text-white px-5 rounded-r-full flex items-center justify-center hover:bg-black transition-all shrink-0 border border-primary border-l-0"
+          onClick={handleClick}
+        >
           <Search className="w-5 h-5" />
         </button>
       </div>
-
       {isOpen && (results.length > 0 || loading) && (
         <div className="absolute top-[calc(100%+8px)] left-0 lg:left-auto lg:right-0 w-[calc(100vw-32px)] md:w-[450px] bg-white rounded-xl shadow-2xl border border-border-color z-50 py-2 max-h-[75vh] overflow-y-auto animate-in fade-in slide-in-from-top-2 duration-200">
           {loading && results.length === 0 ? (
@@ -74,16 +79,12 @@ export function SearchDropdown({ onClose }: { onClose?: () => void }) {
                 key={product.id}
                 className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-none"
                 onMouseEnter={() => {
-                  // Warm the in-memory client cache so the detail page can
-                  // render immediately with no skeleton.
                   getProduct(product.slug).catch(() => {});
                 }}
                 onClick={() => {
                   setIsOpen(false);
                   setQuery("");
                   onClose?.();
-                  // Hand off the full product so the detail page can render
-                  // it instantly in the first frame.
                   stashProductForHandoff(product);
                 }}
               >
