@@ -1,12 +1,11 @@
 "use client";
 
+import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Search } from "lucide-react";
-import { useCartStore } from "@/store/cart";
 import { searchProducts, getProduct } from "@/lib/api";
 import { Product } from "@/types";
-import { cn } from "@/lib/utils";
 import { stashProductForHandoff } from "@/components/product/ProductCard";
 import { useRouter } from "next/navigation";
 
