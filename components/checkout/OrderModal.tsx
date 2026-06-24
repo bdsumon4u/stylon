@@ -73,11 +73,6 @@ export function OrderModal({ isOpen, onClose }: OrderModalProps) {
 
   const shippingCost = shippingOption === "inside" ? shippingRates.inside : shippingRates.outside;
 
-  if (!isOpen) return null;
-
-  const totalPrice = getTotalPrice();
-  const grandTotal = totalPrice + shippingCost;
-
   // Fire InitiateCheckout once per modal-open transition, only when there are
   // items to check out. Runs client-side only; analytics helper is SSR-safe.
   useEffect(() => {
@@ -90,6 +85,11 @@ export function OrderModal({ isOpen, onClose }: OrderModalProps) {
       shippingOption === "inside" ? "Inside Dhaka" : "Outside Dhaka",
     );
   }, [isOpen, items, shippingCost, shippingOption]);
+
+  if (!isOpen) return null;
+
+  const totalPrice = getTotalPrice();
+  const grandTotal = totalPrice + shippingCost;
 
   const handleSubmit = async () => {
     setError("");

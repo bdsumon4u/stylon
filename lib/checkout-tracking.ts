@@ -27,16 +27,19 @@ function sendCheckoutProgress() {
 
   const body = JSON.stringify(payload);
   const blob = new Blob([body], { type: "application/json" });
+  const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/storefront";
+  const url = process.env.NEXT_PUBLIC_BEACON_URL || `${apiBase}/save-checkout-progress`;
 
+  console.log('beacon url: ' + url);
   if (navigator.sendBeacon) {
-    navigator.sendBeacon("/save-checkout-progress", blob);
+    navigator.sendBeacon(url, blob);
   } else {
-    fetch("/save-checkout-progress", {
+    fetch(url, {
       method: "POST",
       body,
       headers: { "Content-Type": "application/json" },
       keepalive: true,
-    }).catch(() => {});
+    }).catch(() => { });
   }
 }
 
