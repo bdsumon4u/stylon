@@ -11,6 +11,7 @@ import { OrderModalGlobal } from "@/components/checkout/OrderModalGlobal";
 import { TrackingScripts } from "@/components/analytics/TrackingScripts";
 import { getSettings, getMediaUrl } from "@/lib/api";
 import { Toaster } from "sonner";
+import Script from "next/script";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -106,6 +107,25 @@ export default async function RootLayout({
         <MobileBottomNav initialSettings={settings} />
         <CartDrawer />
         <OrderModalGlobal />
+
+        {/* Register Service Worker for Stale-While-Revalidate caching */}
+        <Script
+          id="register-service-worker"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `
+              if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function() {
+                  navigator.serviceWorker.register('/sw.js').then(function(registration) {
+                    console.log('ServiceWorker registered with scope:', registration.scope);
+                  }).catch(function(error) {
+                    console.error('ServiceWorker registration failed:', error);
+                  });
+                });
+              }
+            `
+          }}
+        />
       </body>
     </html>
   );
