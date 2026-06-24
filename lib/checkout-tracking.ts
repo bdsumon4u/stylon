@@ -11,6 +11,8 @@
  * - `data-place-order` button click fires before form submission
  */
 
+import { useCartStore } from "@/store/cart";
+
 let handlerAttached = false;
 
 function getFieldValue(selector: string) {
@@ -23,6 +25,11 @@ function sendCheckoutProgress() {
     phone: getFieldValue('[name="checkout-phone"]'),
     address: getFieldValue('[name="checkout-address"]'),
     note: getFieldValue('[name="checkout-note"]'),
+    items: useCartStore.getState().items.map((item) => ({
+      id: item.product.id,
+      quantity: item.quantity,
+      variation_id: item.variation?.id || null,
+    })),
   };
 
   const body = JSON.stringify(payload);
