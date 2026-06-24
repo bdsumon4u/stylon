@@ -104,24 +104,6 @@ export default async function RootLayout({
         <MobileBottomNav />
         <CartDrawer />
         <OrderModalGlobal />
-
-        {/* Unregister any existing service worker from previous deployments. */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.getRegistrations().then(function(regs) {
-                  regs.forEach(function(r) { r.unregister(); });
-                });
-                if ('caches' in window) {
-                  caches.keys().then(function(keys) {
-                    keys.forEach(function(k) { caches.delete(k); });
-                  });
-                }
-              }
-            `,
-          }}
-        />
       </body>
     </html>
   );

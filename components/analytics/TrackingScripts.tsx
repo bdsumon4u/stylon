@@ -36,6 +36,8 @@ export function TrackingScripts({ gtmId, pixelIds }: TrackingScriptsProps) {
     return null;
   }
 
+  console.log('loading tracking scripts', hasGtm, cleanGtmId, hasPixel, cleanPixelIds);
+
   return (
     <>
       {/* Google Tag Manager */}
