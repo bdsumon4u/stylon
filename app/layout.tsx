@@ -55,6 +55,8 @@ export default async function RootLayout({
     console.error("Failed to fetch settings on server:", error);
   }
 
+  console.log('settings', settings);
+
   // Preload the LCP logo + warm up the media host.
   const desktopLogo = settings?.logo?.desktop ? getMediaUrl(settings.logo.desktop) : null;
   const mobileLogo  = settings?.logo?.mobile  ? getMediaUrl(settings.logo.mobile)  : null;
