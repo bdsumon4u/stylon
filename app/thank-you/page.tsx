@@ -31,7 +31,8 @@ import {
   Tag,
 } from "lucide-react";
 import { clearThankYouOrder, getThankYouOrder, ThankYouOrder } from "@/lib/order-storage";
-import { getSettings, getProducts } from "@/lib/api";
+import { getProducts } from "@/lib/api";
+import { useSettings } from "@/hooks/useSettings";
 import { Product } from "@/types";
 import { ProductCard } from "@/components/product/ProductCard";
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
@@ -88,7 +89,7 @@ function ThankYouContent() {
   const [order, setOrder] = useState<ThankYouOrder | null>(null);
   const [copied, setCopied] = useState(false);
   const [hydrated, setHydrated] = useState(false);
-  const [settings, setSettings] = useState<any>(null);
+  const settings = useSettings();
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
   const [relatedLoading, setRelatedLoading] = useState(true);
 
@@ -107,9 +108,6 @@ function ThankYouContent() {
   }, [hydrated, order]);
 
   useEffect(() => {
-    getSettings()
-      .then(setSettings)
-      .catch(() => setSettings({}));
     getProducts({ per_page: 8, sort: "latest" })
       .then((res) => setRelatedProducts((res.data || []).slice(0, 4)))
       .catch(() => setRelatedProducts([]))

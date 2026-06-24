@@ -5,7 +5,8 @@ import Image from "next/image";
 import { X, Minus, Plus, Trash2, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCartStore, getCartLineId, getDisplayName } from "@/store/cart";
-import { placeOrder, getSettings } from "@/lib/api";
+import { placeOrder } from "@/lib/api";
+import { useSettings } from "@/hooks/useSettings";
 import { saveThankYouOrder, buildThankYouOrder } from "@/lib/order-storage";
 import { trackInitiateCheckout, trackPurchase } from "@/lib/analytics";
 import { useCheckoutTracker } from "@/lib/checkout-tracking";
@@ -52,6 +53,8 @@ export function OrderModal({ isOpen, onClose }: OrderModalProps) {
   const [shippingRates, setShippingRates] = useState({ inside: 80, outside: 150 });
   const { registerCheckoutInteractions } = useCheckoutTracker();
 
+  const settings = useSettings();
+
   // Track InitiateCheckout once per modal-open transition (not on every re-render
   // and not when the user re-opens after closing without submitting).
   const initiatedForRef = useRef(false);
@@ -60,16 +63,17 @@ export function OrderModal({ isOpen, onClose }: OrderModalProps) {
     if (isOpen) {
       initiatedForRef.current = false;
       registerCheckoutInteractions();
-      getSettings().then(settings => {
-        if (settings?.delivery_charge) {
-          setShippingRates({
-            inside: parseInt(settings.delivery_charge.inside_dhaka) || 80,
-            outside: parseInt(settings.delivery_charge.outside_dhaka) || 150,
-          });
-        }
-      }).catch(console.error);
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    if (settings?.delivery_charge) {
+      setShippingRates({
+        inside: parseInt(settings.delivery_charge.inside_dhaka) || 80,
+        outside: parseInt(settings.delivery_charge.outside_dhaka) || 150,
+      });
+    }
+  }, [settings]);
 
   const shippingCost = shippingOption === "inside" ? shippingRates.inside : shippingRates.outside;
 

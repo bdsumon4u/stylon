@@ -6,7 +6,8 @@ import Link from "next/link";
 import { Minus, Plus, ChevronDown, ChevronUp, ShoppingCart, FileText, Video, Share2, ShieldCheck, ChevronLeft, ChevronRight, Star, MessageSquare, CheckCircle, Phone } from "lucide-react";
 import { useCartStore } from "@/store/cart";
 import { ProductCard, consumeProductHandoff } from "@/components/product/ProductCard";
-import { getProduct, getRelatedProducts, getProductReviews, submitProductReview, getSettings, peekProduct } from "@/lib/api";
+import { getProduct, getRelatedProducts, getProductReviews, submitProductReview, peekProduct } from "@/lib/api";
+import { useSettings } from "@/hooks/useSettings";
 import { Product, ProductVariation } from "@/types";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { FreeMode, Navigation, Thumbs, Mousewheel, Keyboard } from "swiper/modules";
@@ -166,7 +167,7 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ slug:
     return peekProduct(slug);
   })();
   const [product, setProduct] = useState<Product | null>(hydratedProduct);
-  const [settings, setSettings] = useState<any>(null);
+  const settings = useSettings();
   // Only show the skeleton if no cache/handoff was available on first render.
   const [loading, setLoading] = useState(hydratedProduct == null);
   const [quantity, setQuantity] = useState(1);
@@ -271,11 +272,6 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ slug:
           setHasMoreReviews(res.pagination?.current_page < res.pagination?.last_page);
         })
         .catch((err) => console.error("Failed to fetch reviews:", err));
-
-      // Settings (used in contact box, WhatsApp, Messenger — not blocking)
-      getSettings()
-        .then((s) => setSettings(s))
-        .catch((err) => console.error("Failed to fetch settings:", err));
     }, 100);
 
     return () => clearTimeout(timer);

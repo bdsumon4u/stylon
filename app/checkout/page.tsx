@@ -5,7 +5,8 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Trash2, Plus, Minus, Loader2 } from "lucide-react";
-import { getSettings, placeOrder } from "@/lib/api";
+import { placeOrder } from "@/lib/api";
+import { useSettings } from "@/hooks/useSettings";
 import { useRouter } from "next/navigation";
 import { saveThankYouOrder, buildThankYouOrder } from "@/lib/order-storage";
 import { trackInitiateCheckout, trackPurchase } from "@/lib/analytics";
@@ -51,18 +52,21 @@ export default function CheckoutPage() {
   const [error, setError] = useState("");
   const { registerCheckoutInteractions } = useCheckoutTracker();
 
+  const settings = useSettings();
+
   useEffect(() => {
     setMounted(true);
     registerCheckoutInteractions();
-    getSettings().then(settings => {
-      if (settings?.delivery_charge) {
-        setShippingRates({
-          inside: parseInt(settings.delivery_charge.inside_dhaka) || 80,
-          outside: parseInt(settings.delivery_charge.outside_dhaka) || 150,
-        });
-      }
-    }).catch(console.error);
   }, []);
+
+  useEffect(() => {
+    if (settings?.delivery_charge) {
+      setShippingRates({
+        inside: parseInt(settings.delivery_charge.inside_dhaka) || 80,
+        outside: parseInt(settings.outside_dhaka || settings.delivery_charge.outside_dhaka) || 150,
+      });
+    }
+  }, [settings]);
 
   const shippingCost = shippingOption === "inside" ? shippingRates.inside : shippingRates.outside;
 

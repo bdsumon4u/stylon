@@ -8,7 +8,8 @@ import { useCartStore } from "@/store/cart";
 import { cn } from "@/lib/utils";
 
 import { SearchDropdown } from "@/components/product/SearchDropdown";
-import { getSettings, getMediaUrl, getMenus, getNestedCategories } from "@/lib/api";
+import { getMediaUrl, getMenus, getNestedCategories } from "@/lib/api";
+import { useSettings } from "@/hooks/useSettings";
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import { Menu as MenuType, Category } from "@/types";
 
@@ -22,7 +23,7 @@ export function Header({ initialSettings }: { initialSettings?: any }) {
     setMobileActiveTab 
   } = useCartStore();
   const [isSearchOpen, setIsSearchOpen] = useState(false); // Mobile search
-  const [settings, setSettings] = useState<any>(initialSettings || null);
+  const settings = useSettings(initialSettings);
   const [menus, setMenus] = useState<MenuType[]>([]);
   const [nestedCategories, setNestedCategories] = useState<Category[]>([]);
   const [activeCategory, setActiveCategory] = useState<Category | null>(null);
@@ -30,7 +31,6 @@ export function Header({ initialSettings }: { initialSettings?: any }) {
   const totalItems = items.reduce((acc, item) => acc + item.quantity, 0);
 
   useEffect(() => {
-    getSettings().then(setSettings).catch(console.error);
     getMenus().then(setMenus).catch(console.error);
     getNestedCategories().then(setNestedCategories).catch(console.error);
   }, []);
@@ -106,7 +106,7 @@ export function Header({ initialSettings }: { initialSettings?: any }) {
                 </div>
               ) : (
                 <div className="text-primary font-bold text-2xl flex items-center gap-1 tracking-tight">
-                  HOTASH
+                  {process.env.NEXT_PUBLIC_APP_NAME || 'HOTASH'}
                 </div>
               )}
             </Link>

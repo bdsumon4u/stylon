@@ -207,10 +207,57 @@ export async function getHomeSectionProducts(
 // ─── Settings ────────────────────────────────────────────────────────────────
 
 export async function getSettings(): Promise<Record<string, any>> {
+  // If running in browser and cache is fresh, return cached settings immediately
+  if (typeof window !== "undefined") {
+    try {
+      const cached = localStorage.getItem("stylon_settings_cache");
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed && parsed.data && parsed.timestamp) {
+          const age = Date.now() - parsed.timestamp;
+          if (age < 5 * 60 * 1000) { // 5 minutes TTL
+            return parsed.data;
+          }
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to read settings from localStorage:", e);
+    }
+  }
+
   const res = await fetchApi<ApiResponse<Record<string, any>>>("/settings", {
-    useCache: true, tags: ["settings"], revalidate: 3600,
+    useCache: true, tags: ["settings"], revalidate: 300,
   });
+
+  if (typeof window !== "undefined" && res?.data) {
+    try {
+      const cacheObj = {
+        data: res.data,
+        timestamp: Date.now(),
+      };
+      localStorage.setItem("stylon_settings_cache", JSON.stringify(cacheObj));
+    } catch (e) {
+      console.warn("Failed to write settings to localStorage:", e);
+    }
+  }
   return res.data;
+}
+
+export function getLocalSettings(): Record<string, any> | null {
+  if (typeof window !== "undefined") {
+    try {
+      const cached = localStorage.getItem("stylon_settings_cache");
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed && parsed.data) {
+          return parsed.data;
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to parse settings from localStorage:", e);
+    }
+  }
+  return null;
 }
 
 // ─── Checkout ────────────────────────────────────────────────────────────────

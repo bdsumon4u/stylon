@@ -103,7 +103,7 @@ export default async function RootLayout({
         <main className="flex-1">{children}</main>
         <Footer initialSettings={settings} />
         <FloatingWidgets />
-        <MobileBottomNav />
+        <MobileBottomNav initialSettings={settings} />
         <CartDrawer />
         <OrderModalGlobal />
       </body>

@@ -1,8 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import Script from 'next/script';
-import { getSettings } from '@/lib/api';
+import { useSettings } from '@/hooks/useSettings';
 
 interface TrackingScriptsProps {
   /** Google Tag Manager container ID, e.g. "GTM-XXXXXXX". Empty/undefined = not rendered. */
@@ -23,19 +22,7 @@ interface TrackingScriptsProps {
  */
 export function TrackingScripts({ gtmId: propGtmId, pixelIds: propPixelIds }: TrackingScriptsProps) {
   console.log('TrackingScripts component initialized');
-  const [settings, setSettings] = useState<any>(null);
-
-  useEffect(() => {
-    // If props are missing, fetch settings on the client side
-    if (!propGtmId || !propPixelIds) {
-      getSettings()
-        .then((data) => {
-          console.log('Fetched settings on client:', data);
-          setSettings(data);
-        })
-        .catch((err) => console.error('Failed to fetch settings on client:', err));
-    }
-  }, [propGtmId, propPixelIds]);
+  const settings = useSettings();
 
   const activeGtmId = propGtmId || settings?.gtm_id;
   const activePixelIds = propPixelIds || settings?.pixel_ids;

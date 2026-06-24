@@ -5,15 +5,15 @@ import Link from "next/link";
 import Image from "next/image";
 import { Mail, Phone, MapPin } from "lucide-react";
 import { FacebookIcon, TwitterIcon, InstagramIcon, YoutubeIcon } from "@/components/icons/BrandIcons";
-import { getSettings, getMediaUrl, getMenus } from "@/lib/api";
+import { getMediaUrl, getMenus } from "@/lib/api";
+import { useSettings } from "@/hooks/useSettings";
 import { Menu as MenuType } from "@/types";
 
 export function Footer({ initialSettings }: { initialSettings?: any }) {
-  const [settings, setSettings] = useState<any>(initialSettings || null);
+  const settings = useSettings(initialSettings);
   const [menus, setMenus] = useState<MenuType[]>([]);
 
   useEffect(() => {
-    getSettings().then(setSettings).catch(console.error);
     getMenus().then(setMenus).catch(console.error);
   }, []);
 

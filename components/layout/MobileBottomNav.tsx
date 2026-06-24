@@ -1,19 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Home, Grid, ShoppingCart, User, Phone } from "lucide-react";
 import { useCartStore } from "@/store/cart";
-import { getSettings } from "@/lib/api";
+import { useSettings } from "@/hooks/useSettings";
 
-export function MobileBottomNav() {
+export function MobileBottomNav({ initialSettings }: { initialSettings?: any }) {
   const { items, setDrawerOpen, setMobileMenuOpen, setMobileActiveTab } = useCartStore();
-  const [settings, setSettings] = useState<any>(null);
+  const settings = useSettings(initialSettings);
   const totalItems = items.reduce((acc, item) => acc + item.quantity, 0);
-
-  useEffect(() => {
-    getSettings().then(setSettings).catch(console.error);
-  }, []);
 
   const phone = settings?.company?.phone;
   const callHref = phone ? `tel:${phone.replace(/[^0-9+]/g, "")}` : "tel:+8801741476000";
