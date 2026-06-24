@@ -1,6 +1,8 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Script from 'next/script';
+import { getSettings } from '@/lib/api';
 
 interface TrackingScriptsProps {
   /** Google Tag Manager container ID, e.g. "GTM-XXXXXXX". Empty/undefined = not rendered. */
@@ -19,23 +21,41 @@ interface TrackingScriptsProps {
  * Only renders when IDs are provided from the backend settings.
  * Uses `afterInteractive` strategy (recommended by Next.js for analytics/tag managers).
  */
-export function TrackingScripts({ gtmId, pixelIds }: TrackingScriptsProps) {
-  console.log('TrackingScripts');
-  const cleanGtmId = gtmId?.trim();
-  console.log('cleanGtmId', cleanGtmId);
+export function TrackingScripts({ gtmId: propGtmId, pixelIds: propPixelIds }: TrackingScriptsProps) {
+  console.log('TrackingScripts component initialized');
+  const [settings, setSettings] = useState<any>(null);
+
+  useEffect(() => {
+    // If props are missing, fetch settings on the client side
+    if (!propGtmId || !propPixelIds) {
+      getSettings()
+        .then((data) => {
+          console.log('Fetched settings on client:', data);
+          setSettings(data);
+        })
+        .catch((err) => console.error('Failed to fetch settings on client:', err));
+    }
+  }, [propGtmId, propPixelIds]);
+
+  const activeGtmId = propGtmId || settings?.gtm_id;
+  const activePixelIds = propPixelIds || settings?.pixel_ids;
+
+  const cleanGtmId = activeGtmId?.trim();
+  console.log('cleanGtmId:', cleanGtmId);
 
   // Split the Laravel-stored space-separated string into individual pixel IDs,
   // trimming whitespace and dropping empties. e.g. "123 456  789" -> ["123", "456", "789"]
-  const cleanPixelIds = (pixelIds ?? '')
+  const cleanPixelIds = (activePixelIds ?? '')
+    .toString()
     .split(/\s+/)
-    .map((id) => id.trim())
+    .map((id: string) => id.trim())
     .filter(Boolean);
-  console.log('cleanPixelIds', cleanPixelIds);
+  console.log('cleanPixelIds:', cleanPixelIds);
 
   const hasGtm = Boolean(cleanGtmId);
   const hasPixel = cleanPixelIds.length > 0;
-  console.log('hasGtm', hasGtm);
-  console.log('hasPixel', hasPixel);
+  console.log('hasGtm:', hasGtm);
+  console.log('hasPixel:', hasPixel);
 
   if (!hasGtm && !hasPixel) {
     console.log('no tracking scripts');
@@ -92,13 +112,13 @@ export function TrackingScripts({ gtmId, pixelIds }: TrackingScriptsProps) {
                 t.src=v;s=b.getElementsByTagName(e)[0];
                 s.parentNode.insertBefore(t,s)}(window, document,'script',
                 'https://connect.facebook.net/en_US/fbevents.js');
-                ${cleanPixelIds.map((id) => `fbq('init', '${id}');`).join('\n                ')}
+                ${cleanPixelIds.map((id: string) => `fbq('init', '${id}');`).join('\n                ')}
                 fbq('track', 'PageView');
               `,
             }}
           />
           {/* One <noscript> fallback per pixel — each pixel must register PageView separately */}
-          {cleanPixelIds.map((id) => (
+          {cleanPixelIds.map((id: string) => (
             <noscript
               key={id}
               dangerouslySetInnerHTML={{
