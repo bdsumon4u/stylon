@@ -20,7 +20,9 @@ interface TrackingScriptsProps {
  * Uses `afterInteractive` strategy (recommended by Next.js for analytics/tag managers).
  */
 export function TrackingScripts({ gtmId, pixelIds }: TrackingScriptsProps) {
+  console.log('TrackingScripts');
   const cleanGtmId = gtmId?.trim();
+  console.log('cleanGtmId', cleanGtmId);
 
   // Split the Laravel-stored space-separated string into individual pixel IDs,
   // trimming whitespace and dropping empties. e.g. "123 456  789" -> ["123", "456", "789"]
@@ -28,11 +30,15 @@ export function TrackingScripts({ gtmId, pixelIds }: TrackingScriptsProps) {
     .split(/\s+/)
     .map((id) => id.trim())
     .filter(Boolean);
+  console.log('cleanPixelIds', cleanPixelIds);
 
   const hasGtm = Boolean(cleanGtmId);
   const hasPixel = cleanPixelIds.length > 0;
+  console.log('hasGtm', hasGtm);
+  console.log('hasPixel', hasPixel);
 
   if (!hasGtm && !hasPixel) {
+    console.log('no tracking scripts');
     return null;
   }
 
