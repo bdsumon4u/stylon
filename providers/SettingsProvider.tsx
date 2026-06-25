@@ -63,12 +63,13 @@ export function SettingsProvider({ children, apiUrl }: SettingsProviderProps) {
       }
 
       const data = await response.json();
+      const settingsData = data?.data || data;
 
       // Update cache
-      settingsCache.set(data);
+      settingsCache.set(settingsData);
 
       // Update state
-      setSettings(data);
+      setSettings(settingsData);
       setError(null);
 
       if (!isBackground) {
