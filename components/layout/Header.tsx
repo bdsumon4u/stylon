@@ -106,7 +106,7 @@ export function Header({ initialSettings }: { initialSettings?: any }) {
                 </div>
               ) : (
                 <div className="text-primary font-bold text-2xl flex items-center gap-1 tracking-tight">
-                  {process.env.NEXT_PUBLIC_APP_NAME || 'HOTASH'}
+                  
                 </div>
               )}
             </Link>
