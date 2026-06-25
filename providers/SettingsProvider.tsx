@@ -121,6 +121,12 @@ export function SettingsProvider({ children, apiUrl, initialSettings = null }: S
     return () => clearInterval(intervalId);
   }, [apiUrl]);
 
+  useEffect(() => {
+    if (settings?.company?.name) {
+      document.title = settings.company.name;
+    }
+  }, [settings]);
+
   return (
     <SettingsContext.Provider value={{ settings, isLoading, error }}>
       {children}

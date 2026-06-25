@@ -23,6 +23,7 @@ export function Header({ initialSettings }: { initialSettings?: any }) {
     setMobileActiveTab 
   } = useCartStore();
   const [isSearchOpen, setIsSearchOpen] = useState(false); // Mobile search
+  const [mounted, setMounted] = useState(false);
   const settings = useSettings(initialSettings);
   const [menus, setMenus] = useState<MenuType[]>([]);
   const [nestedCategories, setNestedCategories] = useState<Category[]>([]);
@@ -31,6 +32,7 @@ export function Header({ initialSettings }: { initialSettings?: any }) {
   const totalItems = items.reduce((acc, item) => acc + item.quantity, 0);
 
   useEffect(() => {
+    setMounted(true);
     getMenus().then(setMenus).catch(console.error);
     getNestedCategories().then(setNestedCategories).catch(console.error);
   }, []);
@@ -77,7 +79,10 @@ export function Header({ initialSettings }: { initialSettings?: any }) {
               <Menu className="w-6 h-6" />
             </button>
             <Link href="/" className="flex items-center gap-2">
-              {settings?.logo ? (
+              {!mounted ? (
+                // Hydration-safe placeholder matching the logo dimensions
+                <div className="h-10 w-32 md:w-40" />
+              ) : settings?.logo ? (
                 <div className="relative h-10 w-32 md:w-40">
                   {/* Desktop Logo */}
                   <Image
