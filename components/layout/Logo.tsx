@@ -14,30 +14,19 @@ interface LogoProps {
 
 export function Logo({ className, width = 150, height = 50, priority = true }: LogoProps) {
   const settings = useSettings();
-  const [logoSrc, setLogoSrc] = useState<string | null>(() => {
-    // Try to get logo from cache immediately (synchronous)
-    if (typeof window !== 'undefined') {
-      try {
-        const cached = localStorage.getItem('stylon_settings_cache');
-        if (cached) {
-          const parsed = JSON.parse(cached);
-          const logoPath = parsed.data?.logo?.desktop || parsed.data?.logo?.mobile;
-          if (logoPath) {
-            return getMediaUrl(logoPath);
-          }
-        }
-      } catch {}
-    }
-    return null;
-  });
+  const logoPath = settings?.logo?.desktop || settings?.logo?.mobile;
+  const initialLogoSrc = logoPath ? getMediaUrl(logoPath) : null;
+  const [logoSrc, setLogoSrc] = useState<string | null>(initialLogoSrc);
 
   useEffect(() => {
-    const logoPath = settings?.logo?.desktop || settings?.logo?.mobile;
-    if (logoPath) {
-      const newLogoSrc = getMediaUrl(logoPath);
+    const currentLogoPath = settings?.logo?.desktop || settings?.logo?.mobile;
+    if (currentLogoPath) {
+      const newLogoSrc = getMediaUrl(currentLogoPath);
       if (newLogoSrc !== logoSrc) {
         setLogoSrc(newLogoSrc);
       }
+    } else {
+      setLogoSrc(null);
     }
   }, [settings?.logo, logoSrc]);
 

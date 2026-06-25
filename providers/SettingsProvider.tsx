@@ -40,10 +40,12 @@ export function useSettingsContext() {
 interface SettingsProviderProps {
   children: ReactNode;
   apiUrl: string;
+  initialSettings?: Settings | null;
 }
 
-export function SettingsProvider({ children, apiUrl }: SettingsProviderProps) {
+export function SettingsProvider({ children, apiUrl, initialSettings = null }: SettingsProviderProps) {
   const [settings, setSettings] = useState<Settings | null>(() => {
+    if (initialSettings) return initialSettings;
     // Initialize with cached data immediately (synchronous)
     const cached = settingsCache.get();
     return cached?.data || null;
@@ -51,6 +53,12 @@ export function SettingsProvider({ children, apiUrl }: SettingsProviderProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const fetchingRef = useRef(false);
+
+  useEffect(() => {
+    if (initialSettings) {
+      settingsCache.set(initialSettings);
+    }
+  }, [initialSettings]);
 
   const fetchSettings = async (isBackground = false) => {
     if (fetchingRef.current) return;

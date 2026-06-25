@@ -99,7 +99,7 @@ export default async function RootLayout({
         )}
       </head>
       <body className="min-h-full flex flex-col font-sans bg-light-bg text-black pb-16 lg:pb-0" suppressHydrationWarning>
-        <SettingsProvider apiUrl={`${API_BASE}/settings`}>
+        <SettingsProvider apiUrl={`${API_BASE}/settings`} initialSettings={settings}>
           <Toaster position="top-right" richColors closeButton />
           <TrackingScripts />
           <Header initialSettings={settings} />
