@@ -62,6 +62,7 @@ self.addEventListener("fetch", (event) => {
           })
           .catch((err) => {
             console.warn("Service Worker: background fetch failed for:", request.url);
+            throw err;
           });
 
         // Serve cached response first, fallback to network response
