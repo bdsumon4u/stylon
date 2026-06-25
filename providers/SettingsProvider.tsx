@@ -44,12 +44,7 @@ interface SettingsProviderProps {
 }
 
 export function SettingsProvider({ children, apiUrl, initialSettings = null }: SettingsProviderProps) {
-  const [settings, setSettings] = useState<Settings | null>(() => {
-    if (initialSettings) return initialSettings;
-    // Initialize with cached data immediately (synchronous)
-    const cached = settingsCache.get();
-    return cached?.data || null;
-  });
+  const [settings, setSettings] = useState<Settings | null>(initialSettings);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const fetchingRef = useRef(false);
@@ -97,6 +92,12 @@ export function SettingsProvider({ children, apiUrl, initialSettings = null }: S
 
   useEffect(() => {
     const cached = settingsCache.get();
+
+    // If settings is still null (i.e. server-side fetch failed or returned null),
+    // load it from the client-side cache after hydration has completed.
+    if (!settings && cached?.data) {
+      setSettings(cached.data);
+    }
 
     if (cached && !settingsCache.isStale(cached)) {
       // Cache is fresh, use it and mark as loaded

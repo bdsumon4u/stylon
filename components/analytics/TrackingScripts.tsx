@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Script from 'next/script';
 import { useSettings } from '@/providers/SettingsProvider';
 
@@ -30,6 +30,11 @@ const scriptStatus = {
 export function TrackingScripts({ gtmId: propGtmId, pixelIds: propPixelIds }: TrackingScriptsProps) {
   const settings = useSettings();
   const hasInitialized = useRef(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const activeGtmId = propGtmId || settings?.gtm_id;
   const activePixelIds = propPixelIds || settings?.pixel_ids;
@@ -49,14 +54,18 @@ export function TrackingScripts({ gtmId: propGtmId, pixelIds: propPixelIds }: Tr
 
   // Only log once per mount
   useEffect(() => {
-    if (!hasInitialized.current && (hasGtm || hasPixel)) {
+    if (mounted && !hasInitialized.current && (hasGtm || hasPixel)) {
       console.log('[TrackingScripts] Initialized:', {
         gtm: cleanGtmId || 'none',
         pixels: cleanPixelIds.length > 0 ? cleanPixelIds : 'none'
       });
       hasInitialized.current = true;
     }
-  }, [hasGtm, hasPixel, cleanGtmId, cleanPixelIds]);
+  }, [mounted, hasGtm, hasPixel, cleanGtmId, cleanPixelIds]);
+
+  if (!mounted) {
+    return null;
+  }
 
   if (!hasGtm && !hasPixel) {
     return null;
