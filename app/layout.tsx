@@ -9,6 +9,7 @@ import { FloatingWidgets } from "@/components/layout/FloatingWidgets";
 import { CartDrawer } from "@/components/cart/CartDrawer";
 import { OrderModalGlobal } from "@/components/checkout/OrderModalGlobal";
 import { TrackingScripts } from "@/components/analytics/TrackingScripts";
+import { SettingsProvider } from "@/providers/SettingsProvider";
 import { getSettings, getMediaUrl } from "@/lib/api";
 import { Toaster } from "sonner";
 import Script from "next/script";
@@ -56,8 +57,6 @@ export default async function RootLayout({
     console.error("Failed to fetch settings on server:", error);
   }
 
-  console.log('settings', settings);
-
   // Preload the LCP logo + warm up the media host.
   const desktopLogo = settings?.logo?.desktop ? getMediaUrl(settings.logo.desktop) : null;
   const mobileLogo  = settings?.logo?.mobile  ? getMediaUrl(settings.logo.mobile)  : null;
@@ -68,6 +67,8 @@ export default async function RootLayout({
       return null;
     }
   })();
+
+  const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/storefront";
 
   return (
     <html lang="en" className={`${inter.variable} h-full antialiased`} suppressHydrationWarning>
@@ -98,34 +99,36 @@ export default async function RootLayout({
         )}
       </head>
       <body className="min-h-full flex flex-col font-sans bg-light-bg text-black pb-16 lg:pb-0" suppressHydrationWarning>
-        <Toaster position="top-right" richColors closeButton />
-        <TrackingScripts gtmId={settings?.gtm_id} pixelIds={settings?.pixel_ids} />
-        <Header initialSettings={settings} />
-        <main className="flex-1">{children}</main>
-        <Footer initialSettings={settings} />
-        <FloatingWidgets />
-        <MobileBottomNav initialSettings={settings} />
-        <CartDrawer />
-        <OrderModalGlobal />
+        <SettingsProvider apiUrl={`${API_BASE}/settings`}>
+          <Toaster position="top-right" richColors closeButton />
+          <TrackingScripts />
+          <Header initialSettings={settings} />
+          <main className="flex-1">{children}</main>
+          <Footer initialSettings={settings} />
+          <FloatingWidgets />
+          <MobileBottomNav initialSettings={settings} />
+          <CartDrawer />
+          <OrderModalGlobal />
 
-        {/* Register Service Worker for Stale-While-Revalidate caching */}
-        <Script
-          id="register-service-worker"
-          strategy="afterInteractive"
-          dangerouslySetInnerHTML={{
-            __html: `
-              if ('serviceWorker' in navigator) {
-                window.addEventListener('load', function() {
-                  navigator.serviceWorker.register('/sw.js').then(function(registration) {
-                    console.log('ServiceWorker registered with scope:', registration.scope);
-                  }).catch(function(error) {
-                    console.error('ServiceWorker registration failed:', error);
+          {/* Register Service Worker for Stale-While-Revalidate caching */}
+          <Script
+            id="register-service-worker"
+            strategy="afterInteractive"
+            dangerouslySetInnerHTML={{
+              __html: `
+                if ('serviceWorker' in navigator) {
+                  window.addEventListener('load', function() {
+                    navigator.serviceWorker.register('/sw.js').then(function(registration) {
+                      console.log('ServiceWorker registered with scope:', registration.scope);
+                    }).catch(function(error) {
+                      console.error('ServiceWorker registration failed:', error);
+                    });
                   });
-                });
-              }
-            `
-          }}
-        />
+                }
+              `
+            }}
+          />
+        </SettingsProvider>
       </body>
     </html>
   );

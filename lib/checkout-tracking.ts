@@ -33,7 +33,7 @@ function sendCheckoutProgress() {
   };
 
   const body = JSON.stringify(payload);
-  const blob = new Blob([body], { type: "application/json" });
+  const blob = new Blob([body], { type: "text/plain" });
   const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/storefront";
   const url = process.env.NEXT_PUBLIC_BEACON_URL || `${apiBase}/save-checkout-progress`;
 

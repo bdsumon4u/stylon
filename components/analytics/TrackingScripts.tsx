@@ -1,7 +1,8 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
 import Script from 'next/script';
-import { useSettings } from '@/hooks/useSettings';
+import { useSettings } from '@/providers/SettingsProvider';
 
 interface TrackingScriptsProps {
   /** Google Tag Manager container ID, e.g. "GTM-XXXXXXX". Empty/undefined = not rendered. */
@@ -15,20 +16,25 @@ interface TrackingScriptsProps {
   pixelIds?: string;
 }
 
+// Track globally to prevent re-initialization across component remounts
+const scriptStatus = {
+  gtmLoaded: false,
+  pixelsLoaded: false,
+};
+
 /**
  * Facebook Pixel + Google Tag Manager tracking scripts.
  * Only renders when IDs are provided from the backend settings.
  * Uses `afterInteractive` strategy (recommended by Next.js for analytics/tag managers).
  */
 export function TrackingScripts({ gtmId: propGtmId, pixelIds: propPixelIds }: TrackingScriptsProps) {
-  console.log('TrackingScripts component initialized');
   const settings = useSettings();
+  const hasInitialized = useRef(false);
 
   const activeGtmId = propGtmId || settings?.gtm_id;
   const activePixelIds = propPixelIds || settings?.pixel_ids;
 
   const cleanGtmId = activeGtmId?.trim();
-  console.log('cleanGtmId:', cleanGtmId);
 
   // Split the Laravel-stored space-separated string into individual pixel IDs,
   // trimming whitespace and dropping empties. e.g. "123 456  789" -> ["123", "456", "789"]
@@ -37,28 +43,34 @@ export function TrackingScripts({ gtmId: propGtmId, pixelIds: propPixelIds }: Tr
     .split(/\s+/)
     .map((id: string) => id.trim())
     .filter(Boolean);
-  console.log('cleanPixelIds:', cleanPixelIds);
 
   const hasGtm = Boolean(cleanGtmId);
   const hasPixel = cleanPixelIds.length > 0;
-  console.log('hasGtm:', hasGtm);
-  console.log('hasPixel:', hasPixel);
+
+  // Only log once per mount
+  useEffect(() => {
+    if (!hasInitialized.current && (hasGtm || hasPixel)) {
+      console.log('[TrackingScripts] Initialized:', {
+        gtm: cleanGtmId || 'none',
+        pixels: cleanPixelIds.length > 0 ? cleanPixelIds : 'none'
+      });
+      hasInitialized.current = true;
+    }
+  }, [hasGtm, hasPixel, cleanGtmId, cleanPixelIds]);
 
   if (!hasGtm && !hasPixel) {
-    console.log('no tracking scripts');
     return null;
   }
-
-  console.log('loading tracking scripts', hasGtm, cleanGtmId, hasPixel, cleanPixelIds);
 
   return (
     <>
       {/* Google Tag Manager */}
-      {hasGtm && cleanGtmId && (
+      {hasGtm && cleanGtmId && !scriptStatus.gtmLoaded && (
         <>
           <Script
             id="gtm-init"
             strategy="afterInteractive"
+            onLoad={() => { scriptStatus.gtmLoaded = true; }}
             dangerouslySetInnerHTML={{
               __html: `
                 (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
@@ -84,11 +96,12 @@ export function TrackingScripts({ gtmId: propGtmId, pixelIds: propPixelIds }: Tr
       )}
 
       {/* Facebook Pixel — one snippet, one <noscript> per pixel ID */}
-      {hasPixel && (
+      {hasPixel && !scriptStatus.pixelsLoaded && (
         <>
           <Script
             id="fb-pixel-init"
             strategy="afterInteractive"
+            onLoad={() => { scriptStatus.pixelsLoaded = true; }}
             dangerouslySetInnerHTML={{
               __html: `
                 !function(f,b,e,v,n,t,s)
