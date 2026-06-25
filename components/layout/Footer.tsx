@@ -10,12 +10,10 @@ import { useSettings } from "@/hooks/useSettings";
 import { Menu as MenuType } from "@/types";
 
 export function Footer({ initialSettings }: { initialSettings?: any }) {
-  const [mounted, setMounted] = useState(false);
   const settings = useSettings(initialSettings);
   const [menus, setMenus] = useState<MenuType[]>([]);
 
   useEffect(() => {
-    setMounted(true);
     getMenus().then(setMenus).catch(console.error);
   }, []);
 
@@ -29,10 +27,7 @@ export function Footer({ initialSettings }: { initialSettings?: any }) {
           {/* Column 1 */}
           <div className="space-y-4">
             <Link href="/" className="flex items-center gap-2 mb-4">
-              {!mounted ? (
-                // Hydration-safe placeholder matching the footer logo dimensions
-                <div className="w-40 h-12" />
-              ) : settings?.logo ? (
+              {settings?.logo ? (
                 <div className="relative w-40 h-12">
                   <Image
                     src={getMediaUrl(settings.logo.desktop || settings.logo.mobile)}
