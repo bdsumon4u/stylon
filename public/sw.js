@@ -1,4 +1,4 @@
-const CACHE_NAME = "stylon-sw-cache-v1";
+const CACHE_NAME = "stylon-sw-cache-v2";
 
 // Cache dynamic pages, media files, and script bundles.
 // Clean up old caches on activate.
@@ -48,22 +48,39 @@ self.addEventListener("fetch", (event) => {
   event.respondWith(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.match(request).then((cachedResponse) => {
-        // Spawn background network fetch to revalidate cache
-        const fetchPromise = fetch(request)
-          .then((networkResponse) => {
-            // Check if response is valid (status 200 or status 0 for opaque cross-origin resources like images)
-            if (
-              networkResponse &&
-              (networkResponse.status === 200 || networkResponse.status === 0)
-            ) {
-              cache.put(request, networkResponse.clone());
-            }
-            return networkResponse;
-          })
-          .catch((err) => {
-            console.warn("Service Worker: background fetch failed for:", request.url);
-            throw err;
-          });
+        // Determine if we should attempt to upgrade a cross-origin 'no-cors' request to 'cors'.
+        // This lets us inspect the response status (e.g. 200 vs 404/500) and avoid caching broken assets.
+        const isCrossOriginAsset = url.origin !== self.location.origin && request.mode === "no-cors";
+
+        const makeFetch = () => {
+          if (isCrossOriginAsset) {
+            return fetch(new Request(request, { mode: "cors" }))
+              .then((networkResponse) => {
+                if (networkResponse && networkResponse.ok) {
+                  cache.put(request, networkResponse.clone());
+                }
+                return networkResponse;
+              })
+              .catch(() => {
+                // If CORS fails (e.g. server CORS configuration mismatch), fallback to standard no-cors fetch.
+                // We do NOT cache opaque (status 0) responses to prevent caching broken/failed resources.
+                return fetch(request);
+              });
+          } else {
+            return fetch(request).then((networkResponse) => {
+              // Only cache successful same-origin or CORS responses (status 200-299)
+              if (networkResponse && networkResponse.ok) {
+                cache.put(request, networkResponse.clone());
+              }
+              return networkResponse;
+            });
+          }
+        };
+
+        const fetchPromise = makeFetch().catch((err) => {
+          console.warn("Service Worker: background fetch failed for:", request.url);
+          throw err;
+        });
 
         // Serve cached response first, fallback to network response
         return cachedResponse || fetchPromise;
