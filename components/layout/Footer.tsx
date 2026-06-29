@@ -58,11 +58,11 @@ export function Footer({ initialSettings }: { initialSettings?: any }) {
             <ul className="space-y-4 text-sm text-black">
               <li className="flex items-center gap-3">
                 <Phone className="w-4 h-4" />
-                {settings?.company?.phone || "+88 01741-476000"}
+                <a href={`tel:${settings?.company?.phone}`} target="_blank" rel="noopener noreferrer">{settings?.company?.phone || ""}</a>
               </li>
               <li className="flex items-center gap-3">
                 <Mail className="w-4 h-4" />
-                {settings?.company?.email || ""}
+                <a href={`mailto:${settings?.company?.email}`} target="_blank" rel="noopener noreferrer">{settings?.company?.email || ""}</a>
               </li>
               <li className="flex items-start gap-3">
                 <MapPin className="w-4 h-4 mt-1" />
