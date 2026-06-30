@@ -172,6 +172,7 @@ export default function ProductDetailsClient({ initialProduct, slug }: { initial
   });
   const [submittingReview, setSubmittingReview] = useState(false);
   const [reviewMessage, setReviewMessage] = useState({ type: "", text: "" });
+  const descriptionRef = useRef<HTMLDivElement>(null);
 
   const primeVariationFromProduct = (prod: Product) => {
     if (prod.variations && prod.variations.length > 0) {
@@ -244,6 +245,30 @@ export default function ProductDetailsClient({ initialProduct, slug }: { initial
     // We intentionally depend only on `slug`.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug]);
+
+  // Resize iframes in the description to be responsive.
+  // Uses a MutationObserver so it catches iframes that load/swap after initial render.
+  useEffect(() => {
+    const el = descriptionRef.current;
+    if (!el) return;
+
+    const resizeIframes = () => {
+      el.querySelectorAll("iframe").forEach((iframe) => {
+        iframe.removeAttribute("width");
+        iframe.removeAttribute("height");
+        iframe.setAttribute("style", "width:100%!important;height:340px!important;border:none!important;display:block!important;");
+      });
+    };
+
+    // Run immediately for already-parsed iframes
+    resizeIframes();
+
+    // Also watch for late-added iframes (e.g. oEmbed scripts that inject later)
+    const observer = new MutationObserver(resizeIframes);
+    observer.observe(el, { childList: true, subtree: true });
+
+    return () => observer.disconnect();
+  }, [product?.description]);
 
   // Fetch reviews in the background
   useEffect(() => {
@@ -630,7 +655,7 @@ export default function ProductDetailsClient({ initialProduct, slug }: { initial
               isOpen={activeAccordion === "description"}
               onClick={() => setActiveAccordion(activeAccordion === "description" ? "" : "description")}
             >
-              <div className="text-sm text-dark" dangerouslySetInnerHTML={{ __html: product.description || "This exclusive dress is designed to give you a premium and elegant look. Made from high-quality materials to ensure maximum comfort and durability." }} />
+              <div ref={descriptionRef} className="text-sm text-dark" dangerouslySetInnerHTML={{ __html: product.description || "This exclusive dress is designed to give you a premium and elegant look. Made from high-quality materials to ensure maximum comfort and durability." }} />
             </AccordionItem>
 
             <AccordionItem
