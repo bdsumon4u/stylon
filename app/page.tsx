@@ -143,7 +143,7 @@ export default function Home() {
           >
             {categories.map((category) => (
               <SwiperSlide key={category.id}>
-                <Link href={`/shop?category=${encodeURIComponent(category.slug)}`} className="flex flex-col items-center gap-2 group">
+                <Link href={`/shop?category[]=${encodeURIComponent(category.slug)}`} className="flex flex-col items-center gap-2 group">
                   <div className="w-20 h-20 md:w-24 md:h-24 rounded-lg bg-white border border-border-color shadow-sm overflow-hidden flex items-center justify-center p-1 group-hover:border-primary transition-colors">
                      <div className="w-full h-full rounded-lg bg-gray-100 relative overflow-hidden">
                        <Image src={category.image} alt={category.name} fill sizes="(max-width: 768px) 64px, 80px" className="object-cover" />
