@@ -9,6 +9,7 @@ import { FloatingWidgets } from "@/components/layout/FloatingWidgets";
 import { CartDrawer } from "@/components/cart/CartDrawer";
 import { OrderModalGlobal } from "@/components/checkout/OrderModalGlobal";
 import { TrackingScripts } from "@/components/analytics/TrackingScripts";
+import { LoadingBar } from "@/components/layout/LoadingBar";
 import { SettingsProvider } from "@/providers/SettingsProvider";
 import { getSettings, getMediaUrl } from "@/lib/api";
 import { Toaster } from "sonner";
@@ -100,6 +101,7 @@ export default async function RootLayout({
       </head>
       <body className="min-h-full flex flex-col font-sans bg-light-bg text-black pb-16 lg:pb-0" suppressHydrationWarning>
         <SettingsProvider apiUrl={`${API_BASE}/settings`} initialSettings={settings}>
+          <LoadingBar />
           <Toaster position="top-right" richColors closeButton />
           <TrackingScripts />
           <Header initialSettings={settings} />
