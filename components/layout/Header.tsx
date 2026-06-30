@@ -117,7 +117,7 @@ export function Header({ initialSettings }: { initialSettings?: any }) {
           {/* Desktop Navigation */}
           <div className="hidden lg:flex items-center flex-[1_1_0%] min-w-0 h-full">
             {/* All Products with Nested Categories Dropdown - Fixed */}
-            <div className="relative group flex items-center gap-1 cursor-pointer hover:text-primary transition-colors shrink-0 py-6 pr-6 border-r border-border-color/50">
+            <div className="relative group flex items-center gap-1 cursor-pointer hover:text-primary transition-colors shrink-0 py-6 pr-3 border-r border-border-color/50">
               <Link href="/shop" className="font-bold text-black group-hover:text-primary whitespace-nowrap">All Products</Link>
               <ChevronDown className="w-4 h-4 text-muted-text group-hover:text-primary transition-transform group-hover:rotate-180" />
               
@@ -193,7 +193,7 @@ export function Header({ initialSettings }: { initialSettings?: any }) {
             </div>
 
             {/* Other Menu Items - Scrolling */}
-            <nav className="flex-1 min-w-0 overflow-x-auto hide-scrollbar whitespace-nowrap px-6 flex items-center gap-8 h-full">
+            <nav className="flex-1 min-w-0 overflow-x-auto hide-scrollbar whitespace-nowrap px-3 flex items-center gap-3 h-full">
               {headerMenu && headerMenu.items.map((item) => (
                 <Link key={item.id} href={item.href} className="hover:text-primary transition-colors font-medium text-[15px]">
                   {item.name}
