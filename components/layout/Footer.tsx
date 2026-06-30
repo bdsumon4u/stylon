@@ -157,7 +157,7 @@ export function Footer() {
       
       {/* Bottom Purple Strip */}
       <div className="bg-primary text-white text-center py-4 text-xs">
-        <p>© 2026 {settings?.company?.name || ""} | Developed By Service Key.</p>
+        <p>© 2026 {settings?.company?.name || ""} | Developed By <a href="https://hotash.tech" target="_blank" rel="noopener" className="text-red-500 font-bold hover:opacity-90 transition-opacity shadow-sm">Hotash Tech</a>.</p>
       </div>
     </footer>
   );
