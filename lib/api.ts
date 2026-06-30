@@ -62,9 +62,23 @@ async function fetchApi<T>(endpoint: string, options?: FetchApiOptions): Promise
   };
 
   if (isCacheable) {
+    // Next.js limits cache tags to 256 characters. Some product slugs
+    // contain URL-encoded Unicode (Bengali, em-dashes, etc.) that blow past
+    // the limit. We keep the tag prefix intact and hash the value portion
+    // when it's too long, so targeted revalidation still works correctly.
+    const tags = (options?.tags ?? ["storefront"]).map((t) => {
+      if (t.length <= 256) return t;
+      const [prefix, ...rest] = t.split(":");
+      const value = rest.join(":");
+      let hash = 0;
+      for (let i = 0; i < value.length; i++) {
+        hash = ((hash << 5) - hash + value.charCodeAt(i)) | 0;
+      }
+      return `${prefix}:h${Math.abs(hash)}`;
+    });
     init.next = {
       revalidate: options?.revalidate ?? 3600,
-      tags: options?.tags ?? ["storefront"],
+      tags,
     };
   }
 
