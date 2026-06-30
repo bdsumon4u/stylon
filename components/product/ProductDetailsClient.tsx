@@ -638,7 +638,7 @@ export default function ProductDetailsClient({ initialProduct, slug }: { initial
               {product.categories?.map((cat) => (
                 <Link
                   key={cat.id}
-                  href={`/shop?category=${encodeURIComponent(cat.slug)}`}
+                  href={`/shop?category[]=${encodeURIComponent(cat.slug)}`}
                   className="bg-primary text-white px-2.5 py-1 rounded text-xs font-bold hover:bg-primary-dark transition-colors"
                 >
                   {cat.name}
