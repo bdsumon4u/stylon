@@ -4,6 +4,7 @@ import { Search, ShoppingCart, User, Menu, ChevronDown, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useState, useEffect } from "react";
+import { usePathname } from "next/navigation";
 import { useCartStore } from "@/store/cart";
 import { cn } from "@/lib/utils";
 
@@ -14,13 +15,14 @@ import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import { Menu as MenuType, Category } from "@/types";
 
 export function Header({ initialSettings }: { initialSettings?: any }) {
-  const { 
-    items, 
-    setDrawerOpen, 
-    isMobileMenuOpen, 
-    setMobileMenuOpen, 
-    mobileActiveTab, 
-    setMobileActiveTab 
+  const pathname = usePathname();
+  const {
+    items,
+    setDrawerOpen,
+    isMobileMenuOpen,
+    setMobileMenuOpen,
+    mobileActiveTab,
+    setMobileActiveTab
   } = useCartStore();
   const [isSearchOpen, setIsSearchOpen] = useState(false); // Mobile search
   const settings = useSettings(initialSettings);
@@ -76,7 +78,7 @@ export function Header({ initialSettings }: { initialSettings?: any }) {
             >
               <Menu className="w-6 h-6" />
             </button>
-            <Link href="/" className="flex items-center gap-2">
+            <Link href="/" className="flex items-center gap-2" onClick={(e) => { if (pathname === "/") { e.preventDefault(); window.scrollTo({ top: 0, behavior: "smooth" }); } }}>
               {settings?.logo ? (
                 <div className="relative h-10 w-32 md:w-40">
                   {/* Desktop Logo */}

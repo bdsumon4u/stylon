@@ -6,11 +6,11 @@ import Image from "next/image";
 import { Mail, Phone, MapPin } from "lucide-react";
 import { FacebookIcon, TwitterIcon, InstagramIcon, YoutubeIcon } from "@/components/icons/BrandIcons";
 import { getMediaUrl, getMenus } from "@/lib/api";
-import { useSettings } from "@/hooks/useSettings";
+import { useSettings } from "@/providers/SettingsProvider";
 import { Menu as MenuType } from "@/types";
 
-export function Footer({ initialSettings }: { initialSettings?: any }) {
-  const settings = useSettings(initialSettings);
+export function Footer() {
+  const settings = useSettings();
   const [menus, setMenus] = useState<MenuType[]>([]);
 
   useEffect(() => {
@@ -56,14 +56,18 @@ export function Footer({ initialSettings }: { initialSettings?: any }) {
           <div>
             <h3 className="font-bold text-lg mb-6 text-black">Contact Us</h3>
             <ul className="space-y-4 text-sm text-black">
-              <li className="flex items-center gap-3">
-                <Phone className="w-4 h-4" />
-                <a href={`tel:${settings?.company?.phone}`} target="_blank" rel="noopener noreferrer">{settings?.company?.phone || ""}</a>
-              </li>
-              <li className="flex items-center gap-3">
-                <Mail className="w-4 h-4" />
-                <a href={`mailto:${settings?.company?.email}`} target="_blank" rel="noopener noreferrer">{settings?.company?.email || ""}</a>
-              </li>
+              {settings?.company?.phone && (
+                <li className="flex items-center gap-3" suppressHydrationWarning>
+                  <Phone className="w-4 h-4" />
+                  <a href={`tel:${settings.company.phone}`} target="_blank" rel="noopener noreferrer">{settings.company.phone}</a>
+                </li>
+              )}
+              {settings?.company?.email && (
+                <li className="flex items-center gap-3" suppressHydrationWarning>
+                  <Mail className="w-4 h-4" />
+                  <a href={`mailto:${settings.company.email}`} target="_blank" rel="noopener noreferrer">{settings.company.email}</a>
+                </li>
+              )}
               <li className="flex items-start gap-3">
                 <MapPin className="w-4 h-4 mt-1" />
                 {settings?.company?.address || "Mirpur, Dhaka, Bangladesh"}

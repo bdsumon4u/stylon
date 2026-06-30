@@ -104,7 +104,7 @@ export default async function RootLayout({
           <TrackingScripts />
           <Header initialSettings={settings} />
           <main className="flex-1">{children}</main>
-          <Footer initialSettings={settings} />
+          <Footer />
           <FloatingWidgets />
           <MobileBottomNav initialSettings={settings} />
           <CartDrawer />

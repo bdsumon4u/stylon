@@ -47,6 +47,7 @@ export function SearchDropdown({ onClose }: { onClose?: () => void }) {
     router.push(`/shop?search=${encodeURIComponent(query)}`);
     setIsOpen(false);
     setQuery("");
+    onClose?.();
   };
 
   return (
